@@ -1,5 +1,5 @@
 // Connect to the WebSocket server
-const ws = new WebSocket("ws://localhost:3000"); // Replace with the actual server URL
+const ws = new WebSocket("wss://quixxback.onrender.com"); // Replace with the actual server URL
 
 // Listen for messages from the server
 ws.onmessage = (event) => {
