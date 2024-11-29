@@ -19,6 +19,16 @@ function sendGameStateUpdate(update) {
   ws.send(JSON.stringify(update));
 }
 
+// Function to send a custom message to the backend (for testing or other interactions)
+function sendMessage(message) {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ message }));
+    console.log("Message sent:", message);
+  } else {
+    console.error("WebSocket is not open. Cannot send message.");
+  }
+}
+
 ws.onerror = (error) => {
   console.error("WebSocket error:", error);
 };
@@ -27,6 +37,7 @@ ws.onclose = (event) => {
   console.warn("WebSocket connection closed:", event);
 };
 
+// Handle score cell clicks
 cell.onclick = () => {
   const previousCells = Array.from(cell.parentNode.children).slice(
     0,
