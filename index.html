@@ -136,47 +136,6 @@
         <div class="score-row blue" id="blue-row"></div>
       </div>
     </div>
-
-    <script>
-      // Generate the score rows
-      function generateScoreRows() {
-        const colors = ["red", "yellow", "green", "blue"];
-        const numberRanges = {
-          red: [2, 12],
-          yellow: [2, 12],
-          green: [12, 2],
-          blue: [12, 2],
-        };
-
-        colors.forEach((color) => {
-          const row = document.getElementById(`${color}-row`);
-          const [start, end] = numberRanges[color];
-          const step = start < end ? 1 : -1;
-
-          for (let i = start; i !== end + step; i += step) {
-            const cell = document.createElement("div");
-            cell.textContent = i;
-            cell.className = "score-cell";
-            cell.onclick = () => {
-              if (!cell.classList.contains("crossed")) {
-                cell.classList.add("crossed");
-              }
-            };
-            row.appendChild(cell);
-          }
-
-          // Add the final "lock" cell
-          const lockCell = document.createElement("div");
-          lockCell.textContent =
-            color === "red" || color === "yellow" ? "12" : "1";
-          lockCell.className = "score-cell final-cell";
-          row.appendChild(lockCell);
-        });
-      }
-
-      // Call this function once the game screen is shown
-      generateScoreRows();
-    </script>
     <script src="script.js"></script>
   </body>
 </html>
