@@ -18,7 +18,7 @@ ws.onmessage = (event) => {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
     showGameScreen(); // Ensure the game screen (score rows) is visible
-  } else if (data.diceValues || data.scoreSheets) {
+  } else if (data.diceValues || data.scoreSheets || data.players) {
     console.log("Received updated game state:", data);
     updateGameUI(data); // Update the game board (score rows) if the state changes
   }
@@ -26,11 +26,16 @@ ws.onmessage = (event) => {
 
 // Show the game screen and generate the score rows
 function showGameScreen() {
-  document.getElementById("join-game-screen").style.display = "none";
-  document.getElementById("game-screen").style.display = "block";
+  const joinScreen = document.getElementById("join-game-screen");
+  const gameScreen = document.getElementById("game-screen");
 
-  // Generate score rows (game board)
-  generateScoreRows();
+  if (joinScreen) joinScreen.style.display = "none";
+  if (gameScreen) gameScreen.style.display = "block";
+
+  // Generate score rows (game board) if not already generated
+  if (document.getElementById("red-row").children.length === 0) {
+    generateScoreRows();
+  }
 }
 
 // Join a game when the passcode and player name are submitted
@@ -72,8 +77,10 @@ function rollDice() {
 function updateGameUI(gameState) {
   // Update dice values
   for (const dice in gameState.diceValues) {
-    document.getElementById(dice).textContent =
-      gameState.diceValues[dice] || "🎲";
+    const diceElement = document.getElementById(dice);
+    if (diceElement) {
+      diceElement.textContent = gameState.diceValues[dice] || "🎲";
+    }
   }
 
   // Update score sheets
@@ -83,11 +90,13 @@ function updateGameUI(gameState) {
       const playerScores = scoreSheets[playerId];
       Object.keys(playerScores).forEach((color) => {
         const row = document.getElementById(`${color}-row`);
-        row.querySelectorAll(".score-cell").forEach((cell, index) => {
-          if (playerScores[color].includes(index + 2)) {
-            cell.classList.add("crossed");
-          }
-        });
+        if (row) {
+          row.querySelectorAll(".score-cell").forEach((cell, index) => {
+            if (playerScores[color].includes(index + 2)) {
+              cell.classList.add("crossed");
+            }
+          });
+        }
       });
     });
   }
