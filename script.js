@@ -15,12 +15,10 @@ ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
   if (data.type === "roomStatus") {
-    // Handle room creation or joining confirmation
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
-    toggleScreens(); // Show the game screen
+    toggleScreens();
   } else if (data.diceValues) {
-    // Update the UI with the game state
     console.log("Received updated game state:", data);
     updateGameUI(data);
   }
@@ -30,8 +28,6 @@ ws.onmessage = (event) => {
 function toggleScreens() {
   document.getElementById("join-game-screen").style.display = "none";
   document.getElementById("game-screen").style.display = "block";
-
-  // Generate score rows once the game screen is shown
   generateScoreRows();
 }
 
@@ -68,16 +64,13 @@ function rollDice() {
 
 // Update the UI with the shared game state
 function updateGameUI(gameState) {
-  // Update dice values
   for (const dice in gameState.diceValues) {
     document.getElementById(dice).textContent =
       gameState.diceValues[dice] || "🎲";
   }
 
-  // Update score sheets
   const scoreSheets = gameState.scoreSheets;
   if (scoreSheets) {
-    console.log("Score sheets:", scoreSheets);
     Object.keys(scoreSheets).forEach((playerId) => {
       const playerScores = scoreSheets[playerId];
       Object.keys(playerScores).forEach((color) => {
@@ -92,19 +85,18 @@ function updateGameUI(gameState) {
   }
 }
 
-// Generate the score rows (call once when the game starts)
+// Generate the score rows
 function generateScoreRows() {
-  const colors = ["red", "yellow", "green", "blue"];
-  const numberRanges = {
-    red: [2, 12],
-    yellow: [2, 12],
-    green: [12, 2],
-    blue: [12, 2],
+  const rowsConfig = {
+    red: { start: 1, end: 12, lock: "lock" },
+    yellow: { start: 1, end: 12, lock: "lock" },
+    green: { start: 12, end: 1, lock: "lock" },
+    blue: { start: 12, end: 1, lock: "lock" },
   };
 
-  colors.forEach((color) => {
+  Object.keys(rowsConfig).forEach((color) => {
     const row = document.getElementById(`${color}-row`);
-    const [start, end] = numberRanges[color];
+    const { start, end, lock } = rowsConfig[color];
     const step = start < end ? 1 : -1;
 
     for (let i = start; i !== end + step; i += step) {
@@ -118,6 +110,17 @@ function generateScoreRows() {
       };
       row.appendChild(cell);
     }
+
+    // Add lock column
+    const lockCell = document.createElement("div");
+    lockCell.textContent = lock;
+    lockCell.className = "score-cell lock";
+    lockCell.onclick = () => {
+      if (!lockCell.classList.contains("crossed")) {
+        lockCell.classList.add("crossed");
+      }
+    };
+    row.appendChild(lockCell);
   });
 
   console.log("Score rows generated");
