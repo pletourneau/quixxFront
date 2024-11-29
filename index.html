@@ -85,6 +85,12 @@
         background-color: #ccc;
         text-decoration: line-through;
       }
+      .final-cell {
+        font-weight: bold;
+        background-color: #999;
+        color: white;
+        cursor: default;
+      }
       button {
         padding: 10px 20px;
         margin-top: 20px;
@@ -98,12 +104,17 @@
     <!-- Join Game Section -->
     <div id="join-game-screen">
       <h2>Join a Game</h2>
+      <input type="text" id="player-name" placeholder="Enter your name" />
       <input type="text" id="passcode" placeholder="Enter game passcode" />
       <button onclick="joinGame()">Join Game</button>
     </div>
 
     <!-- Game Screen -->
     <div id="game-screen" style="display: none">
+      <h2>Game Screen</h2>
+      <div id="player-info"></div>
+      <div id="turn-info"></div>
+
       <!-- Dice Section -->
       <div class="dice-container" id="dice-container">
         <div class="dice white" id="white1">🎲</div>
@@ -114,6 +125,7 @@
         <div class="dice blue" id="blue">🎲</div>
       </div>
       <button onclick="rollDice()">Roll Dice</button>
+      <button onclick="endTurn()">End Turn</button>
 
       <!-- Score Sheet Section -->
       <div class="score-sheet">
@@ -125,6 +137,46 @@
       </div>
     </div>
 
+    <script>
+      // Generate the score rows
+      function generateScoreRows() {
+        const colors = ["red", "yellow", "green", "blue"];
+        const numberRanges = {
+          red: [2, 12],
+          yellow: [2, 12],
+          green: [12, 2],
+          blue: [12, 2],
+        };
+
+        colors.forEach((color) => {
+          const row = document.getElementById(`${color}-row`);
+          const [start, end] = numberRanges[color];
+          const step = start < end ? 1 : -1;
+
+          for (let i = start; i !== end + step; i += step) {
+            const cell = document.createElement("div");
+            cell.textContent = i;
+            cell.className = "score-cell";
+            cell.onclick = () => {
+              if (!cell.classList.contains("crossed")) {
+                cell.classList.add("crossed");
+              }
+            };
+            row.appendChild(cell);
+          }
+
+          // Add the final "lock" cell
+          const lockCell = document.createElement("div");
+          lockCell.textContent =
+            color === "red" || color === "yellow" ? "12" : "1";
+          lockCell.className = "score-cell final-cell";
+          row.appendChild(lockCell);
+        });
+      }
+
+      // Call this function once the game screen is shown
+      generateScoreRows();
+    </script>
     <script src="script.js"></script>
   </body>
 </html>
