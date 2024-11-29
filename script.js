@@ -30,6 +30,9 @@ ws.onmessage = (event) => {
 function toggleScreens() {
   document.getElementById("join-game-screen").style.display = "none";
   document.getElementById("game-screen").style.display = "block";
+
+  // Generate score rows once the game screen is shown
+  generateScoreRows();
 }
 
 // Join a game when the passcode is submitted
@@ -116,7 +119,6 @@ function generateScoreRows() {
       row.appendChild(cell);
     }
   });
-}
 
-// Call this function once the game screen is displayed
-generateScoreRows();
+  console.log("Score rows generated");
+}
