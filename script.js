@@ -19,7 +19,7 @@ ws.onmessage = (event) => {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
     toggleScreens(); // Show the game screen
-  } else {
+  } else if (data.diceValues) {
     // Update the UI with the game state
     console.log("Received updated game state:", data);
     updateGameUI(data);
@@ -75,7 +75,7 @@ function updateGameUI(gameState) {
   }
 
   // Update score sheets
-  const scoreSheets = gameState.scoreSheets; // Assuming an object of player scores
+  const scoreSheets = gameState.scoreSheets;
   if (scoreSheets) {
     console.log("Score sheets:", scoreSheets);
     Object.keys(scoreSheets).forEach((playerId) => {
