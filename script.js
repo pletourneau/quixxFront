@@ -18,12 +18,30 @@ ws.onmessage = (event) => {
     // Handle room creation or joining confirmation
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
+    toggleScreens(); // Show the game screen
   } else {
     // Update the UI with the game state
     console.log("Received updated game state:", data);
     updateGameUI(data);
   }
 };
+
+// Toggle between the Join Game and Game screens
+function toggleScreens() {
+  document.getElementById("join-game-screen").style.display = "none";
+  document.getElementById("game-screen").style.display = "block";
+}
+
+// Join a game when the passcode is submitted
+function joinGame() {
+  const passcode = document.getElementById("passcode").value;
+  if (passcode) {
+    joinRoom(passcode);
+    console.log(`Joining room with passcode: ${passcode}`);
+  } else {
+    alert("Please enter a passcode to join a game.");
+  }
+}
 
 // Send an action to the server
 function sendAction(type, payload) {
@@ -43,17 +61,6 @@ function rollDice() {
   };
 
   sendAction("rollDice", { diceValues });
-}
-
-// Join a game when the passcode is submitted
-function joinGame() {
-  const passcode = document.getElementById("passcode").value;
-  if (passcode) {
-    joinRoom(passcode);
-    console.log(`Joined room with passcode: ${passcode}`);
-  } else {
-    alert("Please enter a passcode to join a game.");
-  }
 }
 
 // Update the UI with the shared game state
@@ -81,3 +88,35 @@ function updateGameUI(gameState) {
     });
   }
 }
+
+// Generate the score rows (call once when the game starts)
+function generateScoreRows() {
+  const colors = ["red", "yellow", "green", "blue"];
+  const numberRanges = {
+    red: [2, 12],
+    yellow: [2, 12],
+    green: [12, 2],
+    blue: [12, 2],
+  };
+
+  colors.forEach((color) => {
+    const row = document.getElementById(`${color}-row`);
+    const [start, end] = numberRanges[color];
+    const step = start < end ? 1 : -1;
+
+    for (let i = start; i !== end + step; i += step) {
+      const cell = document.createElement("div");
+      cell.textContent = i;
+      cell.className = "score-cell";
+      cell.onclick = () => {
+        if (!cell.classList.contains("crossed")) {
+          cell.classList.add("crossed");
+        }
+      };
+      row.appendChild(cell);
+    }
+  });
+}
+
+// Call this function once the game screen is displayed
+generateScoreRows();

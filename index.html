@@ -5,37 +5,124 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Qwixx Online - Colored Dice & Score Sheet</title>
     <style>
-      /* Your existing styles */
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+      }
+      .dice-container {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .dice {
+        font-size: 2rem;
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        line-height: 50px;
+        text-align: center;
+        margin: 10px;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        font-weight: bold;
+        color: white;
+      }
+      .white {
+        background-color: white;
+        color: black;
+      }
+      .red {
+        background-color: red;
+      }
+      .yellow {
+        background-color: yellow;
+        color: black;
+      }
+      .green {
+        background-color: green;
+      }
+      .blue {
+        background-color: blue;
+      }
+      .score-sheet {
+        margin-top: 30px;
+      }
+      .score-row {
+        display: flex;
+        justify-content: center;
+        margin: 10px 0;
+        padding: 5px 0;
+        border-radius: 8px;
+      }
+      .score-row.red {
+        background-color: red;
+        color: white;
+      }
+      .score-row.yellow {
+        background-color: yellow;
+        color: black;
+      }
+      .score-row.green {
+        background-color: green;
+        color: white;
+      }
+      .score-row.blue {
+        background-color: blue;
+        color: white;
+      }
+      .score-cell {
+        width: 40px;
+        height: 40px;
+        border: 1px solid #ccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .score-cell.crossed {
+        background-color: #ccc;
+        text-decoration: line-through;
+      }
+      button {
+        padding: 10px 20px;
+        margin-top: 20px;
+        font-size: 1rem;
+      }
     </style>
   </head>
   <body>
     <h1>Qwixx Online - Dice Game</h1>
 
-    <!-- Join Room Section -->
-    <div>
+    <!-- Join Game Section -->
+    <div id="join-game-screen">
       <h2>Join a Game</h2>
       <input type="text" id="passcode" placeholder="Enter game passcode" />
       <button onclick="joinGame()">Join Game</button>
     </div>
 
-    <!-- Dice Section -->
-    <div class="dice-container" id="dice-container">
-      <div class="dice white" id="white1">🎲</div>
-      <div class="dice white" id="white2">🎲</div>
-      <div class="dice red" id="red">🎲</div>
-      <div class="dice yellow" id="yellow">🎲</div>
-      <div class="dice green" id="green">🎲</div>
-      <div class="dice blue" id="blue">🎲</div>
-    </div>
-    <button onclick="rollDice()">Roll Dice</button>
+    <!-- Game Screen -->
+    <div id="game-screen" style="display: none">
+      <!-- Dice Section -->
+      <div class="dice-container" id="dice-container">
+        <div class="dice white" id="white1">🎲</div>
+        <div class="dice white" id="white2">🎲</div>
+        <div class="dice red" id="red">🎲</div>
+        <div class="dice yellow" id="yellow">🎲</div>
+        <div class="dice green" id="green">🎲</div>
+        <div class="dice blue" id="blue">🎲</div>
+      </div>
+      <button onclick="rollDice()">Roll Dice</button>
 
-    <!-- Score Sheet Section -->
-    <div class="score-sheet">
-      <h2>Score Sheet</h2>
-      <div class="score-row red" id="red-row"></div>
-      <div class="score-row yellow" id="yellow-row"></div>
-      <div class="score-row green" id="green-row"></div>
-      <div class="score-row blue" id="blue-row"></div>
+      <!-- Score Sheet Section -->
+      <div class="score-sheet">
+        <h2>Score Sheet</h2>
+        <div class="score-row red" id="red-row"></div>
+        <div class="score-row yellow" id="yellow-row"></div>
+        <div class="score-row green" id="green-row"></div>
+        <div class="score-row blue" id="blue-row"></div>
+      </div>
     </div>
 
     <script src="script.js"></script>
