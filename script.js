@@ -17,14 +17,14 @@ ws.onmessage = (event) => {
   if (data.type === "roomStatus") {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
-    showGameScreen(); // Ensure the game screen (score rows) is visible
+    showGameScreen(); // Ensure the game screen is displayed
   } else if (data.diceValues || data.scoreSheets || data.players) {
     console.log("Received updated game state:", data);
-    updateGameUI(data); // Update the game board (score rows) if the state changes
+    updateGameUI(data); // Update the game board (score rows)
   }
 };
 
-// Show the game screen and generate the score rows
+// Show the game screen and generate the game board
 function showGameScreen() {
   const joinScreen = document.getElementById("join-game-screen");
   const gameScreen = document.getElementById("game-screen");
@@ -77,10 +77,8 @@ function rollDice() {
 function updateGameUI(gameState) {
   // Update dice values
   for (const dice in gameState.diceValues) {
-    const diceElement = document.getElementById(dice);
-    if (diceElement) {
-      diceElement.textContent = gameState.diceValues[dice] || "🎲";
-    }
+    document.getElementById(dice).textContent =
+      gameState.diceValues[dice] || "🎲";
   }
 
   // Update score sheets
@@ -90,19 +88,17 @@ function updateGameUI(gameState) {
       const playerScores = scoreSheets[playerId];
       Object.keys(playerScores).forEach((color) => {
         const row = document.getElementById(`${color}-row`);
-        if (row) {
-          row.querySelectorAll(".score-cell").forEach((cell, index) => {
-            if (playerScores[color].includes(index + 2)) {
-              cell.classList.add("crossed");
-            }
-          });
-        }
+        row.querySelectorAll(".score-cell").forEach((cell, index) => {
+          if (playerScores[color].includes(index + 2)) {
+            cell.classList.add("crossed");
+          }
+        });
       });
     });
   }
 }
 
-// Generate the score rows (game board)
+// Generate the score rows
 function generateScoreRows() {
   const rowsConfig = {
     red: { start: 2, end: 12, lock: "12" },
