@@ -1,33 +1,23 @@
 // Connect to the WebSocket server
-const ws = new WebSocket("wss://quixxback.onrender.com"); // Replace with the actual server URL
+const ws = new WebSocket("wss://quixxback.onrender.com");
 
 ws.onopen = () => {
   console.log("WebSocket connection established!");
 };
 
-// Listen for messages from the server
+// Join a room by sending the passcode
+function joinRoom(passcode) {
+  ws.send(JSON.stringify({ type: "joinRoom", passcode }));
+}
+
+// Listen for updates from the server
 ws.onmessage = (event) => {
   const gameState = JSON.parse(event.data);
   console.log("Received updated game state:", gameState);
-  console.log("Message from server:", event.data);
 
-  // Update the UI with the new game state (to be implemented based on game rules)
+  // Update the UI with the new game state
+  updateGameUI(gameState);
 };
-
-// Send updates to the server
-function sendGameStateUpdate(update) {
-  ws.send(JSON.stringify(update));
-}
-
-// Function to send a custom message to the backend (for testing or other interactions)
-function sendMessage(message) {
-  if (ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ message }));
-    console.log("Message sent:", message);
-  } else {
-    console.error("WebSocket is not open. Cannot send message.");
-  }
-}
 
 ws.onerror = (error) => {
   console.error("WebSocket error:", error);
@@ -37,27 +27,49 @@ ws.onclose = (event) => {
   console.warn("WebSocket connection closed:", event);
 };
 
-// Example usage for cell clicks (ensure this is defined globally or used in context)
-document.querySelectorAll(".score-cell").forEach((cell) => {
-  cell.onclick = () => {
-    const previousCells = Array.from(cell.parentNode.children).slice(
-      0,
-      cell.cellIndex
-    );
-    const allPreviousCrossed = previousCells.every((prev) =>
-      prev.classList.contains("crossed")
-    );
+// Send an action to the server
+function sendAction(type, payload) {
+  const message = { type, ...payload };
+  ws.send(JSON.stringify(message));
+}
 
-    if (!cell.classList.contains("crossed") && allPreviousCrossed) {
-      cell.classList.add("crossed");
-
-      // Send the update to the server
-      sendGameStateUpdate({
-        color: cell.parentNode.id, // Assuming parent row ID is the color
-        number: parseInt(cell.textContent),
-      });
-    } else {
-      alert("You must cross numbers from left to right!");
-    }
+// Roll dice action
+function rollDice() {
+  const diceValues = {
+    white1: Math.floor(Math.random() * 6) + 1,
+    white2: Math.floor(Math.random() * 6) + 1,
+    red: Math.floor(Math.random() * 6) + 1,
+    yellow: Math.floor(Math.random() * 6) + 1,
+    green: Math.floor(Math.random() * 6) + 1,
+    blue: Math.floor(Math.random() * 6) + 1,
   };
-});
+
+  sendAction("rollDice", { diceValues });
+}
+
+// Example function to join a game
+function joinGame() {
+  const passcode = document.getElementById("passcode").value;
+  if (passcode) {
+    joinRoom(passcode);
+    console.log(`Joined room with passcode: ${passcode}`);
+  } else {
+    alert("Please enter a passcode to join a game.");
+  }
+}
+
+// Update the UI with the shared game state
+function updateGameUI(gameState) {
+  // Update dice values
+  for (const dice in gameState.diceValues) {
+    document.getElementById(dice).textContent =
+      gameState.diceValues[dice] || "🎲";
+  }
+
+  // Example logic to update score rows
+  const scoreSheets = gameState.scoreSheets; // Assuming an object of player scores
+  if (scoreSheets) {
+    console.log("Score sheets:", scoreSheets);
+    // Update the score sheet rows as needed
+  }
+}
