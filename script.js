@@ -17,18 +17,20 @@ ws.onmessage = (event) => {
   if (data.type === "roomStatus") {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
-    toggleScreens(); // Switch screens and ensure the game board is visible
+    showGameScreen(); // Ensure the game screen (score rows) is visible
   } else if (data.diceValues || data.scoreSheets) {
     console.log("Received updated game state:", data);
-    updateGameUI(data); // Update the game UI if the state changes
+    updateGameUI(data); // Update the game board (score rows) if the state changes
   }
 };
 
-// Toggle between the Join Game and Game screens
-function toggleScreens() {
+// Show the game screen and generate the score rows
+function showGameScreen() {
   document.getElementById("join-game-screen").style.display = "none";
   document.getElementById("game-screen").style.display = "block";
-  generateScoreRows(); // Ensure score rows are generated when the screen is toggled
+
+  // Generate score rows (game board)
+  generateScoreRows();
 }
 
 // Join a game when the passcode and player name are submitted
@@ -91,7 +93,7 @@ function updateGameUI(gameState) {
   }
 }
 
-// Generate the score rows
+// Generate the score rows (game board)
 function generateScoreRows() {
   const rowsConfig = {
     red: { start: 2, end: 12, lock: "12" },
