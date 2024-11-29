@@ -37,22 +37,27 @@ ws.onclose = (event) => {
   console.warn("WebSocket connection closed:", event);
 };
 
-// Handle score cell clicks
-cell.onclick = () => {
-  const previousCells = Array.from(cell.parentNode.children).slice(
-    0,
-    cell.cellIndex
-  );
-  const allPreviousCrossed = previousCells.every((prev) =>
-    prev.classList.contains("crossed")
-  );
+// Example usage for cell clicks (ensure this is defined globally or used in context)
+document.querySelectorAll(".score-cell").forEach((cell) => {
+  cell.onclick = () => {
+    const previousCells = Array.from(cell.parentNode.children).slice(
+      0,
+      cell.cellIndex
+    );
+    const allPreviousCrossed = previousCells.every((prev) =>
+      prev.classList.contains("crossed")
+    );
 
-  if (!cell.classList.contains("crossed") && allPreviousCrossed) {
-    cell.classList.add("crossed");
+    if (!cell.classList.contains("crossed") && allPreviousCrossed) {
+      cell.classList.add("crossed");
 
-    // Send the update to the server
-    sendGameStateUpdate({ color: color, number: parseInt(cell.textContent) });
-  } else {
-    alert("You must cross numbers from left to right!");
-  }
-};
+      // Send the update to the server
+      sendGameStateUpdate({
+        color: cell.parentNode.id, // Assuming parent row ID is the color
+        number: parseInt(cell.textContent),
+      });
+    } else {
+      alert("You must cross numbers from left to right!");
+    }
+  };
+});
