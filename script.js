@@ -12,19 +12,17 @@ function joinRoom(passcode) {
 
 // Listen for updates from the server
 ws.onmessage = (event) => {
-  const gameState = JSON.parse(event.data);
-  console.log("Received updated game state:", gameState);
+  const data = JSON.parse(event.data);
 
-  // Update the UI with the new game state
-  updateGameUI(gameState);
-};
-
-ws.onerror = (error) => {
-  console.error("WebSocket error:", error);
-};
-
-ws.onclose = (event) => {
-  console.warn("WebSocket connection closed:", event);
+  if (data.type === "roomStatus") {
+    // Handle room creation or joining confirmation
+    console.log(`Room ${data.room} was ${data.status}`);
+    alert(`You have ${data.status} the room: ${data.room}`);
+  } else {
+    // Update the UI with the game state
+    console.log("Received updated game state:", data);
+    updateGameUI(data);
+  }
 };
 
 // Send an action to the server
@@ -47,7 +45,7 @@ function rollDice() {
   sendAction("rollDice", { diceValues });
 }
 
-// Example function to join a game
+// Join a game when the passcode is submitted
 function joinGame() {
   const passcode = document.getElementById("passcode").value;
   if (passcode) {
@@ -66,10 +64,20 @@ function updateGameUI(gameState) {
       gameState.diceValues[dice] || "🎲";
   }
 
-  // Example logic to update score rows
+  // Update score sheets
   const scoreSheets = gameState.scoreSheets; // Assuming an object of player scores
   if (scoreSheets) {
     console.log("Score sheets:", scoreSheets);
-    // Update the score sheet rows as needed
+    Object.keys(scoreSheets).forEach((playerId) => {
+      const playerScores = scoreSheets[playerId];
+      Object.keys(playerScores).forEach((color) => {
+        const row = document.getElementById(`${color}-row`);
+        row.querySelectorAll(".score-cell").forEach((cell, index) => {
+          if (playerScores[color].includes(index + 2)) {
+            cell.classList.add("crossed");
+          }
+        });
+      });
+    });
   }
 }
