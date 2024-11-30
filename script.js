@@ -5,6 +5,9 @@ ws.onopen = () => {
   console.log("WebSocket connection established!");
 };
 
+// Cache for player boards
+let playerBoardCache = {};
+
 // Join a room by sending the passcode and player name
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
@@ -102,12 +105,23 @@ function updateGameUI(gameState) {
   const otherBoardsContainer = document.getElementById(
     "other-boards-container"
   );
-  otherBoardsContainer.innerHTML = ""; // Clear existing boards
+
+  // Cache player data for consistency
+  if (gameState.players && gameState.scoreSheets) {
+    gameState.players.forEach((player) => {
+      if (player in gameState.scoreSheets) {
+        playerBoardCache[player] = gameState.scoreSheets[player];
+      }
+    });
+  }
+
+  // Clear the container only if new players exist or boards need regeneration
+  otherBoardsContainer.innerHTML = "";
 
   const currentPlayerName = document.getElementById("player-name").value;
 
-  gameState.players.forEach((player) => {
-    if (player !== currentPlayerName && gameState.scoreSheets[player]) {
+  Object.keys(playerBoardCache).forEach((player) => {
+    if (player !== currentPlayerName) {
       const boardContainer = document.createElement("div");
       boardContainer.className = "player-board";
 
@@ -127,8 +141,8 @@ function updateGameUI(gameState) {
           cell.textContent = i;
 
           if (
-            gameState.scoreSheets[player][color] &&
-            gameState.scoreSheets[player][color].includes(i)
+            playerBoardCache[player][color] &&
+            playerBoardCache[player][color].includes(i)
           ) {
             cell.classList.add("crossed");
           }
