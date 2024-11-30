@@ -18,10 +18,9 @@ ws.onmessage = (event) => {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
     showGameScreen(); // Ensure the game screen (score rows) is visible
-  } else if (data.type === "gameState") {
-    console.log("Received game state:", data);
-    showGameScreen(); // Show the game screen when joining an existing room
-    updateGameUI(data); // Populate the board with the game state
+  } else if (data.type === "newGame") {
+    console.log("New game created for room:", data.room);
+    showGameScreen(); // Show the game screen for a new game
   } else if (data.diceValues || data.scoreSheets || data.players) {
     console.log("Received updated game state:", data);
     updateGameUI(data); // Update the game board (score rows)
@@ -87,23 +86,46 @@ function updateGameUI(gameState) {
     }
   }
 
-  // Update score sheets
-  const scoreSheets = gameState.scoreSheets;
-  if (scoreSheets) {
-    Object.keys(scoreSheets).forEach((playerId) => {
-      const playerScores = scoreSheets[playerId];
-      Object.keys(playerScores).forEach((color) => {
-        const row = document.getElementById(`${color}-row`);
-        if (row) {
-          row.querySelectorAll(".score-cell").forEach((cell, index) => {
-            if (playerScores[color].includes(index + 2)) {
-              cell.classList.add("crossed");
-            }
-          });
+  // Update other players' boards
+  const otherBoardsContainer = document.getElementById(
+    "other-boards-container"
+  );
+  otherBoardsContainer.innerHTML = ""; // Clear existing boards
+
+  const currentPlayerName = document.getElementById("player-name").value;
+
+  gameState.players.forEach((player, index) => {
+    if (player.name !== currentPlayerName) {
+      const boardContainer = document.createElement("div");
+      boardContainer.className = "player-board";
+      if (index === 0) boardContainer.classList.add("active");
+
+      const playerNameElement = document.createElement("div");
+      playerNameElement.className = "player-name";
+      playerNameElement.textContent = player.name;
+      boardContainer.appendChild(playerNameElement);
+
+      const colors = ["red", "yellow", "green", "blue"];
+      colors.forEach((color) => {
+        const row = document.createElement("div");
+        row.className = `score-row other-score-row ${color}`;
+
+        for (let i = 2; i <= 12; i++) {
+          const cell = document.createElement("div");
+          cell.className = "score-cell";
+          cell.textContent = i;
+          if (player.scoreSheet[color].includes(i)) {
+            cell.classList.add("crossed");
+          }
+          row.appendChild(cell);
         }
+
+        boardContainer.appendChild(row);
       });
-    });
-  }
+
+      otherBoardsContainer.appendChild(boardContainer);
+    }
+  });
 }
 
 // Generate the score rows (game board)
@@ -153,4 +175,27 @@ function markNumber(color, number) {
 // End the current turn
 function endTurn() {
   sendAction("endTurn", {});
+}
+
+// Slider navigation
+let currentBoardIndex = 0;
+
+// Show the previous player's board
+function showPreviousBoard() {
+  const boards = document.querySelectorAll(".player-board");
+  if (boards.length === 0) return;
+
+  boards[currentBoardIndex].classList.remove("active");
+  currentBoardIndex = (currentBoardIndex - 1 + boards.length) % boards.length;
+  boards[currentBoardIndex].classList.add("active");
+}
+
+// Show the next player's board
+function showNextBoard() {
+  const boards = document.querySelectorAll(".player-board");
+  if (boards.length === 0) return;
+
+  boards[currentBoardIndex].classList.remove("active");
+  currentBoardIndex = (currentBoardIndex + 1) % boards.length;
+  boards[currentBoardIndex].classList.add("active");
 }

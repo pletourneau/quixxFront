@@ -96,6 +96,42 @@
         margin-top: 20px;
         font-size: 1rem;
       }
+      .slider-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 30px;
+      }
+      .slider-button {
+        background-color: #ddd;
+        border: none;
+        font-size: 1.5rem;
+        padding: 10px;
+        cursor: pointer;
+        margin: 0 10px;
+      }
+      .other-boards-container {
+        width: 60%;
+        margin: 0 auto;
+        overflow: hidden;
+      }
+      .player-board {
+        display: none;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .player-board.active {
+        display: block;
+      }
+      .player-name {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .other-score-row .score-cell {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
+      }
     </style>
   </head>
   <body>
@@ -127,13 +163,20 @@
       <button onclick="rollDice()">Roll Dice</button>
       <button onclick="endTurn()">End Turn</button>
 
-      <!-- Score Sheet Section -->
+      <!-- Main Score Sheet Section -->
       <div class="score-sheet">
-        <h2>Score Sheet</h2>
+        <h2>Your Score Sheet</h2>
         <div class="score-row red" id="red-row"></div>
         <div class="score-row yellow" id="yellow-row"></div>
         <div class="score-row green" id="green-row"></div>
         <div class="score-row blue" id="blue-row"></div>
+      </div>
+
+      <!-- Other Players' Boards -->
+      <div class="slider-container">
+        <button class="slider-button" onclick="showPreviousBoard()">⬅</button>
+        <div class="other-boards-container" id="other-boards-container"></div>
+        <button class="slider-button" onclick="showNextBoard()">➡</button>
       </div>
     </div>
     <script src="script.js"></script>
