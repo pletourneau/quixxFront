@@ -95,11 +95,17 @@ function updateGameUI(gameState) {
 
   const currentPlayerName = document.getElementById("player-name").value;
 
+  let opponentsExist = false;
+
   gameState.players.forEach((player, index) => {
     if (player.name !== currentPlayerName) {
+      opponentsExist = true;
+
       const boardContainer = document.createElement("div");
       boardContainer.className = "player-board";
-      if (index === 0) boardContainer.classList.add("active");
+      if (!document.querySelector(".player-board")) {
+        boardContainer.classList.add("active");
+      }
 
       const playerNameElement = document.createElement("div");
       playerNameElement.className = "player-name";
@@ -127,6 +133,14 @@ function updateGameUI(gameState) {
       otherBoardsContainer.appendChild(boardContainer);
     }
   });
+
+  // Ensure at least one opponent board is active
+  if (opponentsExist) {
+    const boards = document.querySelectorAll(".player-board");
+    if (boards.length > 0 && !document.querySelector(".player-board.active")) {
+      boards[0].classList.add("active");
+    }
+  }
 }
 
 // Slider logic for other players' boards
