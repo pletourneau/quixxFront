@@ -132,6 +132,15 @@
         height: 30px;
         font-size: 0.8rem;
       }
+      .player-list {
+        margin: 20px 0;
+        font-size: 1.2rem;
+        text-align: left;
+      }
+      .player-list h3 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+      }
     </style>
   </head>
   <body>
@@ -148,8 +157,12 @@
     <!-- Game Screen -->
     <div id="game-screen" style="display: none">
       <h2>Game Screen</h2>
-      <div id="player-info"></div>
-      <div id="turn-info"></div>
+
+      <!-- Player List Section -->
+      <div id="player-info" class="player-list">
+        <h3>Players in the Room:</h3>
+        <!-- Player names will be dynamically added here -->
+      </div>
 
       <!-- Dice Section -->
       <div class="dice-container" id="dice-container">

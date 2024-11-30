@@ -22,9 +22,6 @@ ws.onmessage = (event) => {
     console.log("Received game state:", data);
     showGameScreen(); // Show the game screen when joining an existing room
     updateGameUI(data); // Populate the board with the game state
-  } else if (data.diceValues || data.scoreSheets || data.players) {
-    console.log("Received updated game state:", data);
-    updateGameUI(data); // Update the game board (score rows)
   }
 };
 
@@ -36,7 +33,6 @@ function showGameScreen() {
   if (joinScreen) joinScreen.style.display = "none";
   if (gameScreen) gameScreen.style.display = "block";
 
-  // Generate score rows (game board) if not already generated
   if (document.getElementById("red-row").children.length === 0) {
     generateScoreRows();
   }
@@ -79,6 +75,18 @@ function rollDice() {
 
 // Update the UI with the shared game state
 function updateGameUI(gameState) {
+  const playerInfo = document.getElementById("player-info");
+
+  // Update player list
+  if (gameState.players) {
+    playerInfo.innerHTML = `<h3>Players in the Room:</h3>`;
+    gameState.players.forEach((player) => {
+      const playerElement = document.createElement("div");
+      playerElement.textContent = player.name;
+      playerInfo.appendChild(playerElement);
+    });
+  }
+
   // Update dice values
   for (const dice in gameState.diceValues) {
     const diceElement = document.getElementById(dice);
@@ -95,17 +103,11 @@ function updateGameUI(gameState) {
 
   const currentPlayerName = document.getElementById("player-name").value;
 
-  let opponentsExist = false;
-
   gameState.players.forEach((player, index) => {
     if (player.name !== currentPlayerName) {
-      opponentsExist = true;
-
       const boardContainer = document.createElement("div");
       boardContainer.className = "player-board";
-      if (!document.querySelector(".player-board")) {
-        boardContainer.classList.add("active");
-      }
+      if (index === 0) boardContainer.classList.add("active");
 
       const playerNameElement = document.createElement("div");
       playerNameElement.className = "player-name";
@@ -121,7 +123,7 @@ function updateGameUI(gameState) {
           const cell = document.createElement("div");
           cell.className = "score-cell";
           cell.textContent = i;
-          if (player.scoreSheet[color].includes(i)) {
+          if (player.scoreSheet[color]?.includes(i)) {
             cell.classList.add("crossed");
           }
           row.appendChild(cell);
@@ -133,14 +135,6 @@ function updateGameUI(gameState) {
       otherBoardsContainer.appendChild(boardContainer);
     }
   });
-
-  // Ensure at least one opponent board is active
-  if (opponentsExist) {
-    const boards = document.querySelectorAll(".player-board");
-    if (boards.length > 0 && !document.querySelector(".player-board.active")) {
-      boards[0].classList.add("active");
-    }
-  }
 }
 
 // Slider logic for other players' boards
