@@ -87,22 +87,66 @@ function updateGameUI(gameState) {
     }
   }
 
-  // Update score sheets
-  const scoreSheets = gameState.scoreSheets;
-  if (scoreSheets) {
-    Object.keys(scoreSheets).forEach((playerId) => {
-      const playerScores = scoreSheets[playerId];
-      Object.keys(playerScores).forEach((color) => {
-        const row = document.getElementById(`${color}-row`);
-        if (row) {
-          row.querySelectorAll(".score-cell").forEach((cell, index) => {
-            if (playerScores[color].includes(index + 2)) {
-              cell.classList.add("crossed");
-            }
-          });
+  // Update other players' boards
+  const otherBoardsContainer = document.getElementById(
+    "other-boards-container"
+  );
+  otherBoardsContainer.innerHTML = ""; // Clear existing boards
+
+  const currentPlayerName = document.getElementById("player-name").value;
+
+  gameState.players.forEach((player, index) => {
+    if (player.name !== currentPlayerName) {
+      const boardContainer = document.createElement("div");
+      boardContainer.className = "player-board";
+      if (index === 0) boardContainer.classList.add("active");
+
+      const playerNameElement = document.createElement("div");
+      playerNameElement.className = "player-name";
+      playerNameElement.textContent = player.name;
+      boardContainer.appendChild(playerNameElement);
+
+      const colors = ["red", "yellow", "green", "blue"];
+      colors.forEach((color) => {
+        const row = document.createElement("div");
+        row.className = `score-row other-score-row ${color}`;
+
+        for (let i = 2; i <= 12; i++) {
+          const cell = document.createElement("div");
+          cell.className = "score-cell";
+          cell.textContent = i;
+          if (player.scoreSheet[color].includes(i)) {
+            cell.classList.add("crossed");
+          }
+          row.appendChild(cell);
         }
+
+        boardContainer.appendChild(row);
       });
-    });
+
+      otherBoardsContainer.appendChild(boardContainer);
+    }
+  });
+}
+
+// Slider logic for other players' boards
+let currentBoardIndex = 0;
+
+function showNextBoard() {
+  const boards = document.querySelectorAll(".player-board");
+  if (boards.length > 0) {
+    boards[currentBoardIndex].classList.remove("active");
+    currentBoardIndex = (currentBoardIndex + 1) % boards.length;
+    boards[currentBoardIndex].classList.add("active");
+  }
+}
+
+function showPreviousBoard() {
+  const boards = document.querySelectorAll(".player-board");
+  if (boards.length > 0) {
+    boards[currentBoardIndex].classList.remove("active");
+    currentBoardIndex = (currentBoardIndex - 1 + boards.length) % boards.length;
+    boards[currentBoardIndex].classList.add("active");
   }
 }
 
