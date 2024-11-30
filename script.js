@@ -17,13 +17,13 @@ ws.onmessage = (event) => {
   if (data.type === "roomStatus") {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
-    showGameScreen(); // Ensure the game screen (score rows) is visible
+    showGameScreen(); // Show the game screen for joining a room
   } else if (data.type === "newGame") {
     console.log("New game created for room:", data.room);
     showGameScreen(); // Show the game screen for a new game
-  } else if (data.diceValues || data.scoreSheets || data.players) {
+  } else if (data.players || data.diceValues || data.scoreSheets) {
     console.log("Received updated game state:", data);
-    updateGameUI(data); // Update the game board (score rows)
+    updateGameUI(data); // Update the game board with the state
   }
 };
 
@@ -175,27 +175,4 @@ function markNumber(color, number) {
 // End the current turn
 function endTurn() {
   sendAction("endTurn", {});
-}
-
-// Slider navigation
-let currentBoardIndex = 0;
-
-// Show the previous player's board
-function showPreviousBoard() {
-  const boards = document.querySelectorAll(".player-board");
-  if (boards.length === 0) return;
-
-  boards[currentBoardIndex].classList.remove("active");
-  currentBoardIndex = (currentBoardIndex - 1 + boards.length) % boards.length;
-  boards[currentBoardIndex].classList.add("active");
-}
-
-// Show the next player's board
-function showNextBoard() {
-  const boards = document.querySelectorAll(".player-board");
-  if (boards.length === 0) return;
-
-  boards[currentBoardIndex].classList.remove("active");
-  currentBoardIndex = (currentBoardIndex + 1) % boards.length;
-  boards[currentBoardIndex].classList.add("active");
 }
