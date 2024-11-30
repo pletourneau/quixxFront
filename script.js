@@ -18,9 +18,10 @@ ws.onmessage = (event) => {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
     showGameScreen(); // Ensure the game screen (score rows) is visible
-  } else if (data.type === "newGame") {
-    console.log("New game created for room:", data.room);
-    showGameScreen(); // Show the game screen for a new game
+  } else if (data.type === "gameState") {
+    console.log("Received game state:", data);
+    showGameScreen(); // Show the game screen when joining an existing room
+    updateGameUI(data); // Populate the board with the game state
   } else if (data.diceValues || data.scoreSheets || data.players) {
     console.log("Received updated game state:", data);
     updateGameUI(data); // Update the game board (score rows)
