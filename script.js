@@ -108,10 +108,10 @@ function updateGameUI(gameState) {
 // Generate the score rows (game board)
 function generateScoreRows() {
   const rowsConfig = {
-    red: { start: 2, end: 12, lock: "12" },
-    yellow: { start: 2, end: 12, lock: "12" },
-    green: { start: 12, end: 2, lock: "2" },
-    blue: { start: 12, end: 2, lock: "2" },
+    red: { start: 2, end: 12, lock: "LOCK" },
+    yellow: { start: 2, end: 12, lock: "LOCK" },
+    green: { start: 12, end: 2, lock: "LOCK" },
+    blue: { start: 12, end: 2, lock: "LOCK" },
   };
 
   Object.keys(rowsConfig).forEach((color) => {
