@@ -22,6 +22,9 @@ ws.onmessage = (event) => {
     console.log("Received game state:", data);
     showGameScreen(); // Show the game screen when joining an existing room
     updateGameUI(data); // Populate the board with the game state
+  } else if (data.diceValues || data.scoreSheets || data.players) {
+    console.log("Received updated game state:", data);
+    updateGameUI(data); // Update the game board (score rows)
   }
 };
 
@@ -33,6 +36,7 @@ function showGameScreen() {
   if (joinScreen) joinScreen.style.display = "none";
   if (gameScreen) gameScreen.style.display = "block";
 
+  // Generate score rows (game board) if not already generated
   if (document.getElementById("red-row").children.length === 0) {
     generateScoreRows();
   }
@@ -75,14 +79,13 @@ function rollDice() {
 
 // Update the UI with the shared game state
 function updateGameUI(gameState) {
-  const playerInfo = document.getElementById("player-info");
-
   // Update player list
+  const playerInfo = document.getElementById("player-info");
   if (gameState.players) {
     playerInfo.innerHTML = `<h3>Players in the Room:</h3>`;
     gameState.players.forEach((player) => {
       const playerElement = document.createElement("div");
-      playerElement.textContent = player.name;
+      playerElement.textContent = player;
       playerInfo.appendChild(playerElement);
     });
   }
@@ -103,15 +106,14 @@ function updateGameUI(gameState) {
 
   const currentPlayerName = document.getElementById("player-name").value;
 
-  gameState.players.forEach((player, index) => {
-    if (player.name !== currentPlayerName) {
+  gameState.players.forEach((player) => {
+    if (player !== currentPlayerName && gameState.scoreSheets[player]) {
       const boardContainer = document.createElement("div");
       boardContainer.className = "player-board";
-      if (index === 0) boardContainer.classList.add("active");
 
       const playerNameElement = document.createElement("div");
       playerNameElement.className = "player-name";
-      playerNameElement.textContent = player.name;
+      playerNameElement.textContent = player;
       boardContainer.appendChild(playerNameElement);
 
       const colors = ["red", "yellow", "green", "blue"];
@@ -123,7 +125,11 @@ function updateGameUI(gameState) {
           const cell = document.createElement("div");
           cell.className = "score-cell";
           cell.textContent = i;
-          if (player.scoreSheet[color]?.includes(i)) {
+
+          if (
+            gameState.scoreSheets[player][color] &&
+            gameState.scoreSheets[player][color].includes(i)
+          ) {
             cell.classList.add("crossed");
           }
           row.appendChild(cell);
