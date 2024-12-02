@@ -12,6 +12,7 @@ let playerBoardCache = {};
 
 // Track if the current player is the room creator
 let isRoomCreator = false;
+let currentRoom = ""; // Track the current room name
 
 // Join a room by sending the passcode and player name
 function joinRoom(passcode, playerName) {
@@ -30,13 +31,16 @@ ws.onmessage = (event) => {
   if (data.type === "roomStatus") {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
+    currentRoom = data.room;
     showGameScreen(); // Ensure the game screen (score rows) is visible
   } else if (data.type === "newGame") {
     // The current player is the creator of the room
     isRoomCreator = true;
+    currentRoom = data.room;
     console.log("Player is the room creator: ", isRoomCreator);
     // Show the "Start Game" button for the room creator
     document.getElementById("start-game").style.display = "block";
+    document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
   } else if (data.type === "gameState") {
     console.log("Received game state:", data);
 
