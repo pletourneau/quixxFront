@@ -34,6 +34,7 @@ ws.onmessage = (event) => {
   } else if (data.type === "newGame") {
     // The current player is the creator of the room
     isRoomCreator = true;
+    console.log("Player is the room creator: ", isRoomCreator);
     // Show the "Start Game" button for the room creator
     document.getElementById("start-game").style.display = "block";
   } else if (data.type === "gameState") {
