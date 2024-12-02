@@ -124,6 +124,24 @@ function updateGameUI(gameState) {
     });
   }
 
+  // Update turn order
+  const turnOrder = document.getElementById("turn-order");
+  if (gameState.players) {
+    turnOrder.innerHTML = `<h3>Turn Order:</h3>`;
+    gameState.players.forEach((player, index) => {
+      const playerElement = document.createElement("div");
+      playerElement.textContent = `${index + 1}. ${player}`;
+
+      // Highlight the active player
+      if (index === gameState.activePlayerIndex) {
+        playerElement.style.fontWeight = "bold";
+        playerElement.style.color = "green";
+      }
+
+      turnOrder.appendChild(playerElement);
+    });
+  }
+
   // Update dice values
   for (const dice in gameState.diceValues) {
     const diceElement = document.getElementById(dice);
