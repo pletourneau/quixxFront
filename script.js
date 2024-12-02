@@ -8,6 +8,9 @@ ws.onopen = () => {
 // Cache for player boards
 let playerBoardCache = {};
 
+// Track if the current player is the room creator
+let isRoomCreator = false;
+
 // Join a room by sending the passcode and player name
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
@@ -27,6 +30,8 @@ ws.onmessage = (event) => {
     alert(`You have ${data.status} the room: ${data.room}`);
     showGameScreen(); // Ensure the game screen (score rows) is visible
   } else if (data.type === "newGame") {
+    // The current player is the creator of the room
+    isRoomCreator = true;
     // Show the "Start Game" button for the room creator
     document.getElementById("start-game").style.display = "block";
   } else if (data.type === "gameState") {
@@ -36,6 +41,9 @@ ws.onmessage = (event) => {
       document.getElementById("start-game").style.display = "none";
       showGameScreen(); // Show the game screen when the game starts
       updateGameUI(data); // Populate the board with the game state
+    } else if (isRoomCreator) {
+      // If the player is the room creator, keep the button visible until the game starts
+      document.getElementById("start-game").style.display = "block";
     } else {
       alert("Waiting for the game to start...");
     }
@@ -77,7 +85,7 @@ function joinGame() {
 }
 
 // Send an action to the server
-function sendAction(type, payload) {
+function sendAction(type, payload = {}) {
   const message = { type, ...payload };
   ws.send(JSON.stringify(message));
 }
