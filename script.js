@@ -120,6 +120,12 @@ function updateGameUI(gameState) {
     gameState.players.forEach((player) => {
       const playerElement = document.createElement("div");
       playerElement.textContent = player;
+      playerElement.classList.add("player");
+
+      // Highlight the current player if they are the active player
+      if (gameState.activePlayerIndex === index) {
+        playerElement.classList.add("active-player");
+      }
       playerInfo.appendChild(playerElement);
     });
   }
