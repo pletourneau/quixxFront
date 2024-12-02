@@ -26,6 +26,9 @@ ws.onmessage = (event) => {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
     showGameScreen(); // Ensure the game screen (score rows) is visible
+  } else if (data.type === "newGame") {
+    // Show the "Start Game" button for the room creator
+    document.getElementById("start-game").style.display = "block";
   } else if (data.type === "gameState") {
     console.log("Received game state:", data);
 
