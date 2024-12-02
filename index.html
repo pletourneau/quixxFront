@@ -136,6 +136,13 @@
         font-size: 1.5rem;
         margin-bottom: 10px;
       }
+      .active-player {
+        color: green;
+        font-weight: bold;
+        border: 2px solid #000;
+        padding: 5px;
+        border-radius: 4px;
+      }
     </style>
   </head>
   <body>
@@ -147,18 +154,19 @@
       <input type="text" id="player-name" placeholder="Enter your name" />
       <input type="text" id="passcode" placeholder="Enter game passcode" />
       <button onclick="joinGame()">Join Game</button>
-      <!-- Start Game Button -->
-      <button id="start-game" style="display: none" onclick="startGame()">
-        Start Game
-      </button>
-
-      <!-- Display Room Name -->
-      <div id="room-name"></div>
     </div>
 
     <!-- Game Screen -->
     <div id="game-screen" style="display: none">
       <h2>Game Screen</h2>
+
+      <!-- Display Room Name -->
+      <div id="room-name"></div>
+
+      <!-- Start Game Button -->
+      <button id="start-game" style="display: block" onclick="startGame()">
+        Start Game
+      </button>
 
       <!-- Player List Section -->
       <div id="player-info" class="player-list">
