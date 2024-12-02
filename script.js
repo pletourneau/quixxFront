@@ -1,3 +1,5 @@
+// script.js - Client-Side JavaScript
+
 // Connect to the WebSocket server
 const ws = new WebSocket("wss://quixxback.onrender.com");
 
