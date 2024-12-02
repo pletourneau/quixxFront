@@ -13,6 +13,11 @@ function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
 
+// Start the game
+function startGame() {
+  sendAction("startGame", {});
+}
+
 // Listen for updates from the server
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
@@ -23,8 +28,16 @@ ws.onmessage = (event) => {
     showGameScreen(); // Ensure the game screen (score rows) is visible
   } else if (data.type === "gameState") {
     console.log("Received game state:", data);
-    showGameScreen(); // Show the game screen when joining an existing room
-    updateGameUI(data); // Populate the board with the game state
+
+    if (data.started) {
+      document.getElementById("start-game").style.display = "none";
+      showGameScreen(); // Show the game screen when the game starts
+      updateGameUI(data); // Populate the board with the game state
+    } else {
+      alert("Waiting for the game to start...");
+    }
+  } else if (data.type === "error") {
+    alert(data.message);
   } else if (data.diceValues || data.scoreSheets || data.players) {
     console.log("Received updated game state:", data);
     updateGameUI(data); // Update the game board (score rows)

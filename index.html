@@ -127,11 +127,6 @@
         font-weight: bold;
         margin-bottom: 10px;
       }
-      .other-score-row .score-cell {
-        width: 30px;
-        height: 30px;
-        font-size: 0.8rem;
-      }
       .player-list {
         margin: 20px 0;
         font-size: 1.2rem;
@@ -157,6 +152,11 @@
     <!-- Game Screen -->
     <div id="game-screen" style="display: none">
       <h2>Game Screen</h2>
+
+      <!-- Start Game Button -->
+      <button id="start-game" style="display: none" onclick="startGame()">
+        Start Game
+      </button>
 
       <!-- Player List Section -->
       <div id="player-info" class="player-list">
