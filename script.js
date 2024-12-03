@@ -117,7 +117,7 @@ function updateGameUI(gameState) {
   const playerInfo = document.getElementById("player-info");
   if (gameState.players) {
     playerInfo.innerHTML = `<h3>Players in the Room:</h3>`;
-    gameState.players.forEach((player, index) => {
+    gameState.players.forEach((player) => {
       const playerElement = document.createElement("div");
       playerElement.textContent = player;
       playerElement.classList.add("player");
