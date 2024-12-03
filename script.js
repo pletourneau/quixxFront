@@ -9,7 +9,7 @@ ws.onopen = () => {
 let playerBoardCache = {};
 let isRoomCreator = false;
 let currentRoom = ""; // Track the current room name
-
+const options = [];
 // Join a room by sending the passcode and player name
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
@@ -174,10 +174,10 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
     });
 
     // Add the sequence for marking both numbers (first sum + second sum)
-    const firstMarkOption = document.createElement("div");
-    firstMarkOption.textContent = `First mark: ${sumWhiteDice}, then choose a second option.`;
-    firstMarkOption.style.marginTop = "10px";
-    optionsContainer.appendChild(firstMarkOption);
+    // const firstMarkOption = document.createElement("div");
+    // firstMarkOption.textContent = `First mark: ${sumWhiteDice}, then choose a second option.`;
+    // firstMarkOption.style.marginTop = "10px";
+    // optionsContainer.appendChild(firstMarkOption);
   }
 }
 
