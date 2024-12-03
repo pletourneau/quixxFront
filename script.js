@@ -65,6 +65,7 @@ ws.onmessage = (event) => {
     console.log("Player is the room creator: ", isRoomCreator);
     document.getElementById("start-game").style.display = "block"; // Show Start Game button
     document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
+    showGameScreen();
   } else if (data.type === "error") {
     console.error(data.message);
     alert(data.message);
