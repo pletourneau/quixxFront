@@ -116,7 +116,6 @@ function generateScoreRows() {
   console.log("Score rows generated");
 }
 
-// Function to roll dice
 function rollDice() {
   // Randomly generate dice values
   const diceValues = {
@@ -136,7 +135,53 @@ function rollDice() {
     }
   }
 
+  // Determine if the player is the active player
+  const isActivePlayer = true; // Replace with actual logic to check active player
+
+  // Calculate and display marking options
+  calculateMarkingOptions(diceValues, isActivePlayer);
+
   // Notify the server about the dice roll
   sendAction("rollDice", diceValues);
   console.log("Dice rolled:", diceValues);
+}
+
+function calculateMarkingOptions(diceValues, isActivePlayer) {
+  const options = [];
+  const sumWhiteDice = diceValues.white1 + diceValues.white2;
+
+  // Option 1: Sum of the two white dice (available to all players)
+  options.push(`Sum of white dice: ${sumWhiteDice}`);
+
+  if (isActivePlayer) {
+    // Option 2: Sum of one white die and any one colored die (active player only)
+    const whiteAndColorSums = [
+      { color: "red", value: diceValues.white1 + diceValues.red },
+      { color: "red", value: diceValues.white2 + diceValues.red },
+      { color: "yellow", value: diceValues.white1 + diceValues.yellow },
+      { color: "yellow", value: diceValues.white2 + diceValues.yellow },
+      { color: "green", value: diceValues.white1 + diceValues.green },
+      { color: "green", value: diceValues.white2 + diceValues.green },
+      { color: "blue", value: diceValues.white1 + diceValues.blue },
+      { color: "blue", value: diceValues.white2 + diceValues.blue },
+    ];
+
+    whiteAndColorSums.forEach(({ color, value }) => {
+      options.push(`Sum of white die and ${color}: ${value}`);
+    });
+
+    // Option 3: Both the sum of the white dice and one of the second sums
+    options.push(
+      `First mark: ${sumWhiteDice}, then any sum of white die + colored die`
+    );
+  }
+
+  // Display the options in the UI
+  const optionsList = document.getElementById("marking-options-list");
+  optionsList.innerHTML = ""; // Clear previous options
+  options.forEach((option) => {
+    const li = document.createElement("li");
+    li.textContent = option;
+    optionsList.appendChild(li);
+  });
 }
