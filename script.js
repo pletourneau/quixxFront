@@ -37,6 +37,11 @@ ws.onmessage = (event) => {
     document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
   } else if (data.type === "gameState") {
     console.log("Received game state:", data);
+
+    if (data.started) {
+      document.getElementById("start-game").style.display = "none";
+      showGameScreen(); // Display the game board
+    }
   } else if (data.type === "error") {
     alert(data.message);
   }
