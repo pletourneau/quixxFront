@@ -147,14 +147,16 @@ function rollDice() {
 }
 
 function calculateMarkingOptions(diceValues, isActivePlayer) {
-  const options = [];
-  const sumWhiteDice = diceValues.white1 + diceValues.white2;
+  const optionsContainer = document.getElementById("marking-options-list");
+  optionsContainer.innerHTML = ""; // Clear previous options
 
-  // Option 1: Sum of the two white dice (available to all players)
-  options.push(`Sum of white dice: ${sumWhiteDice}`);
+  // Create the sum of white dice option (available for everyone)
+  const sumWhiteDice = diceValues.white1 + diceValues.white2;
+  const whiteOption = createOptionElement(sumWhiteDice, "white");
+  optionsContainer.appendChild(whiteOption);
 
   if (isActivePlayer) {
-    // Option 2: Sum of one white die and any one colored die (active player only)
+    // Create options for the active player: sum of one white die and each colored die
     const whiteAndColorSums = [
       { color: "red", value: diceValues.white1 + diceValues.red },
       { color: "red", value: diceValues.white2 + diceValues.red },
@@ -167,14 +169,28 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
     ];
 
     whiteAndColorSums.forEach(({ color, value }) => {
-      options.push(`Sum of white die and ${color}: ${value}`);
+      const colorOption = createOptionElement(value, color);
+      optionsContainer.appendChild(colorOption);
     });
 
-    // Option 3: Both the sum of the white dice and one of the second sums
-    options.push(
-      `First mark: ${sumWhiteDice}, then any sum of white die + colored die`
-    );
+    // Add the sequence for marking both numbers (first sum + second sum)
+    const firstMarkOption = document.createElement("div");
+    firstMarkOption.textContent = `First mark: ${sumWhiteDice}, then choose a second option.`;
+    firstMarkOption.style.marginTop = "10px";
+    optionsContainer.appendChild(firstMarkOption);
   }
+}
+
+// Helper to create colored square option elements
+function createOptionElement(value, color) {
+  const option = document.createElement("div");
+  option.className = `dice ${color}`;
+  option.textContent = value;
+  option.style.margin = "5px";
+  option.style.display = "inline-block";
+  return option;
+}
+
 
   // Display the options in the UI
   const optionsList = document.getElementById("marking-options-list");
