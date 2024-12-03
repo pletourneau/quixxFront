@@ -51,21 +51,29 @@ function updateTurnOrder(turnOrder) {
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
-  if (data.type === "gameState") {
-    console.log("Received game state:", data);
-    updateGameUI(data); // Update the UI with the game state
-  } else if (data.type === "roomStatus") {
-    console.log(`Room ${data.room} was ${data.status}`);
-    alert(`You have ${data.status} the room: ${data.room}`);
-    currentRoom = data.room;
-    showGameScreen(); // Ensure the game screen is visible
-  } else if (data.type === "newGame") {
+  // Handle "newGame" first, as it's a specific state for game creation
+  if (data.type === "newGame") {
     isRoomCreator = true;
     currentRoom = data.room;
     console.log("Player is the room creator: ", isRoomCreator);
     document.getElementById("start-game").style.display = "block";
     document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
-  } else if (data.type === "error") {
+    showGameScreen(); // Ensure the game screen is visible when the game is created
+  }
+  // Handle "gameState" after "newGame" to prevent overlap
+  else if (data.type === "gameState") {
+    console.log("Received game state:", data);
+    updateGameUI(data); // Update the UI with the game state
+  }
+  // Handle "roomStatus" for joining and leaving rooms
+  else if (data.type === "roomStatus") {
+    console.log(`Room ${data.room} was ${data.status}`);
+    alert(`You have ${data.status} the room: ${data.room}`);
+    currentRoom = data.room;
+    showGameScreen(); // Ensure the game screen is visible
+  }
+  // Handle errors for any issues
+  else if (data.type === "error") {
     console.error(data.message);
     alert(data.message);
   }
