@@ -191,13 +191,11 @@ function createOptionElement(value, color) {
   return option;
 }
 
-
-  // Display the options in the UI
-  const optionsList = document.getElementById("marking-options-list");
-  optionsList.innerHTML = ""; // Clear previous options
-  options.forEach((option) => {
-    const li = document.createElement("li");
-    li.textContent = option;
-    optionsList.appendChild(li);
-  });
-}
+// Display the options in the UI
+const optionsList = document.getElementById("marking-options-list");
+optionsList.innerHTML = ""; // Clear previous options
+options.forEach((option) => {
+  const li = document.createElement("li");
+  li.textContent = option;
+  optionsList.appendChild(li);
+});
