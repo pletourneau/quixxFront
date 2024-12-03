@@ -115,3 +115,28 @@ function generateScoreRows() {
 
   console.log("Score rows generated");
 }
+
+// Function to roll dice
+function rollDice() {
+  // Randomly generate dice values
+  const diceValues = {
+    white1: Math.floor(Math.random() * 6) + 1,
+    white2: Math.floor(Math.random() * 6) + 1,
+    red: Math.floor(Math.random() * 6) + 1,
+    yellow: Math.floor(Math.random() * 6) + 1,
+    green: Math.floor(Math.random() * 6) + 1,
+    blue: Math.floor(Math.random() * 6) + 1,
+  };
+
+  // Display the dice values on the screen
+  for (const dice in diceValues) {
+    const diceElement = document.getElementById(dice);
+    if (diceElement) {
+      diceElement.textContent = diceValues[dice];
+    }
+  }
+
+  // Notify the server about the dice roll
+  sendAction("rollDice", diceValues);
+  console.log("Dice rolled:", diceValues);
+}
