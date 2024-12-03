@@ -11,6 +11,9 @@ let playerBoardCache = {};
 // Track if the current player is the room creator
 let isRoomCreator = false;
 let currentRoom = ""; // Track the current room name
+let hasRolledDice = false;
+let markedSpaces = [];
+let isTurnActive = false;
 
 // Join a room by sending the passcode and player name
 function joinRoom(passcode, playerName) {
@@ -97,6 +100,18 @@ function sendAction(type, payload = {}) {
 
 // Roll dice action
 function rollDice() {
+  if (!isTurnActive) {
+    // Prevent rolling dice if it's not the player's turn
+    alert("It is not your turn!");
+    return;
+  }
+
+  if (hasRolledDice) {
+    // Prevent multiple dice rolls
+    alert("You can only roll the dice once per turn.");
+    return;
+  }
+
   const diceValues = {
     white1: Math.floor(Math.random() * 6) + 1,
     white2: Math.floor(Math.random() * 6) + 1,
@@ -107,6 +122,7 @@ function rollDice() {
   };
 
   sendAction("rollDice", { diceValues });
+  hasRolledDice = true;
 }
 
 // Update the UI with the shared game state
@@ -117,34 +133,43 @@ function updateGameUI(gameState) {
     playerInfo.innerHTML = `<h3>Players in the Room:</h3>`;
     gameState.players.forEach((player, index) => {
       const playerElement = document.createElement("div");
-      playerElement.textContent = player;
+      playerElement.textContent = player.name;
       playerElement.classList.add("player");
 
       // Highlight the current player if they are the active player
       if (gameState.activePlayerIndex === index) {
         playerElement.classList.add("active-player");
+
+        const currentPlayerName = document.getElementById("player-name").value;
+        if (player.name === currentPlayerName) {
+          isTurnActive = true; // Enable actions for the active player
+          alert("It's your turn! Roll the dice to start.");
+
+          // Load their marked spaces into the local array (for continuity)
+          markedSpaces = player.markedSpaces || [];
+        }
       }
       playerInfo.appendChild(playerElement);
     });
   }
 
-  // Update turn order
-  const turnOrder = document.getElementById("turn-order");
-  if (gameState.players) {
-    turnOrder.innerHTML = `<h3>Turn Order:</h3>`;
-    gameState.players.forEach((player, index) => {
-      const playerElement = document.createElement("div");
-      playerElement.textContent = `${index + 1}. ${player}`;
-
-      // Highlight the active player
-      if (index === gameState.activePlayerIndex) {
-        playerElement.style.fontWeight = "bold";
-        playerElement.style.color = "green";
+  // Update the score rows with marked spaces
+  const colors = ["red", "yellow", "green", "blue"];
+  colors.forEach((color) => {
+    const row = document.getElementById(`${color}-row`);
+    row.childNodes.forEach((cell) => {
+      const number = parseInt(cell.textContent, 10);
+      if (
+        gameState.players.some((player) =>
+          player.markedSpaces.some(
+            (space) => space.color === color && space.number === number
+          )
+        )
+      ) {
+        cell.classList.add("crossed");
       }
-
-      turnOrder.appendChild(playerElement);
     });
-  }
+  });
 
   // Update dice values
   for (const dice in gameState.diceValues) {
@@ -153,6 +178,8 @@ function updateGameUI(gameState) {
       diceElement.textContent = gameState.diceValues[dice] || "🎲";
     }
   }
+}
+
 
   // Update other players' boards
   const otherBoardsContainer = document.getElementById(
@@ -272,10 +299,29 @@ function generateScoreRows() {
 
 // Mark a number on the score sheet
 function markNumber(color, number) {
-  sendAction("markNumber", { color, number });
+  if (!isTurnActive) {
+    alert("It is not your turn!");
+    return;
+  }
+
+  if (markedSpaces.some((space) => space.color === color && space.number === number)) {
+    alert("You have already marked this space.");
+    return;
+  }
+
+  // Add the new marked space
+  markedSpaces.push({ color, number });
+
+  // Send the updated list of marked spaces to the server
+  sendAction("markNumber", { color, number, markedSpaces });
 }
 
 // End the current turn
 function endTurn() {
+
+  // Reset turn state
+  isTurnActive = false;
+  hasRolledDice = false;
   sendAction("endTurn", {});
+  alert("Your turn has ended. Waiting for the next player...");
 }
