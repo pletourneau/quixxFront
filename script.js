@@ -50,9 +50,16 @@ function updateTurnOrder(turnOrder) {
 // Listen for updates from the server
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-
+  console.log("WebSocket message received:", data);
   if (data.type === "gameState") {
     console.log("Received game state:", data);
+
+    // Show game screen if the game has started
+    if (data.started) {
+      console.log("Game has started. Showing game screen...");
+      showGameScreen(); // Ensure the game screen is displayed
+    }
+
     updateGameUI(data); // Update the UI with the game state
   } else if (data.type === "roomStatus") {
     console.log(`Room ${data.room} was ${data.status}`);
@@ -65,7 +72,6 @@ ws.onmessage = (event) => {
     console.log("Player is the room creator: ", isRoomCreator);
     document.getElementById("start-game").style.display = "block"; // Show Start Game button
     document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
-    showGameScreen();
   } else if (data.type === "error") {
     console.error(data.message);
     alert(data.message);
@@ -74,6 +80,7 @@ ws.onmessage = (event) => {
 
 // UI Helpers
 function showGameScreen() {
+  console.log("Attempting to show game screen...");
   const joinScreen = document.getElementById("join-game-screen");
   const gameScreen = document.getElementById("game-screen");
 
