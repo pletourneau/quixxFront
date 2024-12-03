@@ -163,6 +163,11 @@
       <button onclick="joinGame()">Join Game</button>
       <!-- Display Room Name -->
       <div id="room-name"></div>
+      <!-- Player List Section -->
+      <div id="player-info" class="player-list">
+        <h3>Players in the Room:</h3>
+        <!-- Player names will be dynamically added here -->
+      </div>
       <!-- Start Game Button -->
       <div>
         <button id="start-game" style="display: none" onclick="startGame()">
@@ -174,12 +179,6 @@
     <!-- Game Screen -->
     <div id="game-screen" style="display: none">
       <h2>Game Screen</h2>
-
-      <!-- Player List Section -->
-      <div id="player-info" class="player-list">
-        <h3>Players in the Room:</h3>
-        <!-- Player names will be dynamically added here -->
-      </div>
 
       <!-- Turn Order Section -->
       <div id="turn-order" class="player-list">
