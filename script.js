@@ -241,30 +241,34 @@ function shuffle(array) {
 
 // Update the UI with the shared game state
 function updateGameUI(gameState) {
-  // Update player list
   const playerInfo = document.getElementById("player-info");
-  if (gameState.players) {
+  const turnOrderElement = document.getElementById("turn-order");
+
+  // Show "Players in Room" before the game starts
+  if (!gameState.started) {
+    playerInfo.style.display = "block";
+    turnOrderElement.style.display = "none";
+
     playerInfo.innerHTML = `<h3>Players in the Room:</h3>`;
     gameState.players.forEach((player) => {
       const playerElement = document.createElement("div");
       playerElement.textContent = player.name;
       playerInfo.appendChild(playerElement);
     });
+
+    // Show the Start Game button only for the room creator
+    if (isRoomCreator) {
+      document.getElementById("start-game").style.display = "block";
+    } else {
+      document.getElementById("start-game").style.display = "none";
+    }
   }
 
-  // Show Start Game button if not started and the user is the room creator
-  if (!gameState.started && isRoomCreator) {
-    document.getElementById("start-game").style.display = "block";
-  }
-
-  // Hide Start Game button once the game starts
+  // Show "Turn Order" after the game starts
   if (gameState.started) {
-    document.getElementById("start-game").style.display = "none";
-  }
+    playerInfo.style.display = "none"; // Hide "Players in Room"
+    turnOrderElement.style.display = "block";
 
-  // Update turn order
-  const turnOrderElement = document.getElementById("turn-order");
-  if (gameState.turnOrder) {
     turnOrderElement.innerHTML = `<h3>Turn Order:</h3>`;
     gameState.turnOrder.forEach((playerName, index) => {
       const playerElement = document.createElement("div");
@@ -277,6 +281,9 @@ function updateGameUI(gameState) {
 
       turnOrderElement.appendChild(playerElement);
     });
+
+    // Hide the Start Game button after the game starts
+    document.getElementById("start-game").style.display = "none";
   }
 }
 
