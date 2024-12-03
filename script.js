@@ -241,34 +241,29 @@ function shuffle(array) {
 
 // Update the UI with the shared game state
 function updateGameUI(gameState) {
+  // Update player list
   const playerInfo = document.getElementById("player-info");
-  const turnOrderElement = document.getElementById("turn-order");
-
-  // Show "Players in Room" before the game starts
-  if (!gameState.started) {
-    playerInfo.style.display = "block";
-    turnOrderElement.style.display = "none";
-
+  if (gameState.players) {
     playerInfo.innerHTML = `<h3>Players in the Room:</h3>`;
     gameState.players.forEach((player) => {
       const playerElement = document.createElement("div");
       playerElement.textContent = player.name;
+
+      // Highlight players who have ended their turn
+      if (
+        gameState.turnEndedBy &&
+        gameState.turnEndedBy.includes(player.name)
+      ) {
+        playerElement.style.textDecoration = "line-through";
+      }
+
       playerInfo.appendChild(playerElement);
     });
-
-    // Show the Start Game button only for the room creator
-    if (isRoomCreator) {
-      document.getElementById("start-game").style.display = "block";
-    } else {
-      document.getElementById("start-game").style.display = "none";
-    }
   }
 
-  // Show "Turn Order" after the game starts
-  if (gameState.started) {
-    playerInfo.style.display = "none"; // Hide "Players in Room"
-    turnOrderElement.style.display = "block";
-
+  // Update turn order
+  const turnOrderElement = document.getElementById("turn-order");
+  if (gameState.turnOrder) {
     turnOrderElement.innerHTML = `<h3>Turn Order:</h3>`;
     gameState.turnOrder.forEach((playerName, index) => {
       const playerElement = document.createElement("div");
@@ -281,19 +276,32 @@ function updateGameUI(gameState) {
 
       turnOrderElement.appendChild(playerElement);
     });
+  }
 
-    // Hide the Start Game button after the game starts
-    document.getElementById("start-game").style.display = "none";
+  // Enable/Disable End Turn button
+  const endTurnButton = document.querySelector("button[onclick='endTurn()']");
+  const currentPlayerName = document.getElementById("player-name").value;
+
+  if (
+    gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName &&
+    gameState.started &&
+    !gameState.turnEndedBy.includes(currentPlayerName)
+  ) {
+    endTurnButton.disabled = false; // Enable if the player hasn't ended their turn
+  } else {
+    endTurnButton.disabled = true; // Disable otherwise
   }
 }
 
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
 
-  // Notify the server that the player has finished their turn actions
+  // Notify the server that the player has ended their turn
   sendAction("endTurn", { playerName: currentPlayerName });
 
-  // Disable the End Turn button after clicking
-  document.getElementById("end-turn-button").disabled = true;
+  // Disable the End Turn button for this player
+  const endTurnButton = document.querySelector("button[onclick='endTurn()']");
+  endTurnButton.disabled = true;
+
   alert("You have ended your turn!");
 }
