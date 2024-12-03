@@ -180,62 +180,58 @@ function updateGameUI(gameState) {
   }
 }
 
+// Update other players' boards
+const otherBoardsContainer = document.getElementById("other-boards-container");
 
-  // Update other players' boards
-  const otherBoardsContainer = document.getElementById(
-    "other-boards-container"
-  );
-
-  // Cache player data for consistency
-  if (gameState.players && gameState.scoreSheets) {
-    gameState.players.forEach((player) => {
-      if (player in gameState.scoreSheets) {
-        playerBoardCache[player] = gameState.scoreSheets[player];
-      }
-    });
-  }
-
-  // Clear the container only if new players exist or boards need regeneration
-  otherBoardsContainer.innerHTML = "";
-
-  const currentPlayerName = document.getElementById("player-name").value;
-
-  Object.keys(playerBoardCache).forEach((player) => {
-    if (player !== currentPlayerName) {
-      const boardContainer = document.createElement("div");
-      boardContainer.className = "player-board";
-
-      const playerNameElement = document.createElement("div");
-      playerNameElement.className = "player-name";
-      playerNameElement.textContent = player;
-      boardContainer.appendChild(playerNameElement);
-
-      const colors = ["red", "yellow", "green", "blue"];
-      colors.forEach((color) => {
-        const row = document.createElement("div");
-        row.className = `score-row other-score-row ${color}`;
-
-        for (let i = 2; i <= 12; i++) {
-          const cell = document.createElement("div");
-          cell.className = "score-cell";
-          cell.textContent = i;
-
-          if (
-            playerBoardCache[player][color] &&
-            playerBoardCache[player][color].includes(i)
-          ) {
-            cell.classList.add("crossed");
-          }
-          row.appendChild(cell);
-        }
-
-        boardContainer.appendChild(row);
-      });
-
-      otherBoardsContainer.appendChild(boardContainer);
+// Cache player data for consistency
+if (gameState.players && gameState.scoreSheets) {
+  gameState.players.forEach((player) => {
+    if (player in gameState.scoreSheets) {
+      playerBoardCache[player] = gameState.scoreSheets[player];
     }
   });
 }
+
+// Clear the container only if new players exist or boards need regeneration
+otherBoardsContainer.innerHTML = "";
+
+const currentPlayerName = document.getElementById("player-name").value;
+
+Object.keys(playerBoardCache).forEach((player) => {
+  if (player !== currentPlayerName) {
+    const boardContainer = document.createElement("div");
+    boardContainer.className = "player-board";
+
+    const playerNameElement = document.createElement("div");
+    playerNameElement.className = "player-name";
+    playerNameElement.textContent = player;
+    boardContainer.appendChild(playerNameElement);
+
+    const colors = ["red", "yellow", "green", "blue"];
+    colors.forEach((color) => {
+      const row = document.createElement("div");
+      row.className = `score-row other-score-row ${color}`;
+
+      for (let i = 2; i <= 12; i++) {
+        const cell = document.createElement("div");
+        cell.className = "score-cell";
+        cell.textContent = i;
+
+        if (
+          playerBoardCache[player][color] &&
+          playerBoardCache[player][color].includes(i)
+        ) {
+          cell.classList.add("crossed");
+        }
+        row.appendChild(cell);
+      }
+
+      boardContainer.appendChild(row);
+    });
+
+    otherBoardsContainer.appendChild(boardContainer);
+  }
+});
 
 // Slider logic for other players' boards
 let currentBoardIndex = 0;
@@ -304,7 +300,11 @@ function markNumber(color, number) {
     return;
   }
 
-  if (markedSpaces.some((space) => space.color === color && space.number === number)) {
+  if (
+    markedSpaces.some(
+      (space) => space.color === color && space.number === number
+    )
+  ) {
     alert("You have already marked this space.");
     return;
   }
@@ -318,7 +318,6 @@ function markNumber(color, number) {
 
 // End the current turn
 function endTurn() {
-
   // Reset turn state
   isTurnActive = false;
   hasRolledDice = false;
