@@ -234,30 +234,34 @@ function shuffle(array) {
   }
 }
 
+// Update the UI with the shared game state
 function updateGameUI(gameState) {
-  const currentPlayerName = document.getElementById("player-name").value;
+  // Update player list
+  const playerInfo = document.getElementById("player-info");
+  if (gameState.players) {
+    playerInfo.innerHTML = `<h3>Players in the Room:</h3>`;
+    gameState.players.forEach((player) => {
+      const playerElement = document.createElement("div");
+      playerElement.textContent = player.name;
+      playerInfo.appendChild(playerElement);
+    });
+  }
 
-  // Highlight the active player
+  // Update turn order
   const turnOrderElement = document.getElementById("turn-order");
-  turnOrderElement.innerHTML = "<h3>Turn Order:</h3>";
-  gameState.turnOrder.forEach((playerName, index) => {
-    const div = document.createElement("div");
-    div.textContent = playerName;
-    if (index === gameState.activePlayerIndex) {
-      div.classList.add("active-player");
-    }
-    turnOrderElement.appendChild(div);
-  });
+  if (gameState.turnOrder) {
+    turnOrderElement.innerHTML = `<h3>Turn Order:</h3>`;
+    gameState.turnOrder.forEach((playerName, index) => {
+      const playerElement = document.createElement("div");
+      playerElement.textContent = `${index + 1}. ${playerName}`;
 
-  // Enable "End Turn" button if the player has not yet ended their turn
-  const currentPlayerState = gameState.players.find(
-    (player) => player.name === currentPlayerName
-  );
+      // Highlight the active player
+      if (index === gameState.activePlayerIndex) {
+        playerElement.classList.add("active-player");
+      }
 
-  if (currentPlayerState && !currentPlayerState.hasEndedTurn) {
-    document.getElementById("end-turn-button").disabled = false;
-  } else {
-    document.getElementById("end-turn-button").disabled = true;
+      turnOrderElement.appendChild(playerElement);
+    });
   }
 }
 
