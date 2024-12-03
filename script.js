@@ -49,6 +49,11 @@ function showGameScreen() {
 
   if (joinScreen) joinScreen.style.display = "none";
   if (gameScreen) gameScreen.style.display = "block";
+
+  // Generate score rows (game board) if not already generated
+  if (document.getElementById("red-row").children.length === 0) {
+    generateScoreRows();
+  }
 }
 
 function joinGame() {
@@ -69,4 +74,39 @@ function joinGame() {
 function sendAction(type, payload = {}) {
   const message = { type, ...payload };
   ws.send(JSON.stringify(message));
+}
+
+// Generate score rows
+function generateScoreRows() {
+  const rowsConfig = {
+    red: { start: 2, end: 12, lock: "LOCK" },
+    yellow: { start: 2, end: 12, lock: "LOCK" },
+    green: { start: 12, end: 2, lock: "LOCK" },
+    blue: { start: 12, end: 2, lock: "LOCK" },
+  };
+
+  Object.keys(rowsConfig).forEach((color) => {
+    const row = document.getElementById(`${color}-row`);
+    if (row) {
+      row.innerHTML = ""; // Clear existing rows before re-generating
+
+      const { start, end, lock } = rowsConfig[color];
+      const step = start < end ? 1 : -1;
+
+      for (let i = start; i !== end + step; i += step) {
+        const cell = document.createElement("div");
+        cell.textContent = i;
+        cell.className = "score-cell";
+        row.appendChild(cell);
+      }
+
+      // Add lock column
+      const lockCell = document.createElement("div");
+      lockCell.textContent = lock;
+      lockCell.className = "score-cell final-cell";
+      row.appendChild(lockCell);
+    }
+  });
+
+  console.log("Score rows generated");
 }
