@@ -15,9 +15,36 @@ function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
 
-// Start the game
 function startGame() {
-  sendAction("startGame", {});
+  if (isRoomCreator) {
+    const players = Array.from(
+      document.querySelectorAll("#player-info .player")
+    ).map((el) => el.textContent);
+
+    shuffle(players); // Shuffle the players to create a random turn order
+
+    // Update turn order on the server and broadcast to players
+    sendAction("startGame", { turnOrder: players });
+
+    // Display turn order on the screen
+    updateTurnOrder(players);
+  } else {
+    alert("Only the host can start the game.");
+  }
+}
+
+// Update the turn order display
+function updateTurnOrder(turnOrder) {
+  const turnOrderElement = document.getElementById("turn-order");
+  turnOrderElement.innerHTML = "<h3>Turn Order:</h3>";
+  turnOrder.forEach((playerName, index) => {
+    const div = document.createElement("div");
+    div.textContent = `${index + 1}. ${playerName}`;
+    if (index === 0) {
+      div.classList.add("active-player"); // Highlight the active player
+    }
+    turnOrderElement.appendChild(div);
+  });
 }
 
 // Listen for updates from the server
@@ -199,3 +226,48 @@ options.forEach((option) => {
   li.textContent = option;
   optionsList.appendChild(li);
 });
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function updateGameUI(gameState) {
+  const currentPlayerName = document.getElementById("player-name").value;
+
+  // Highlight the active player
+  const turnOrderElement = document.getElementById("turn-order");
+  turnOrderElement.innerHTML = "<h3>Turn Order:</h3>";
+  gameState.turnOrder.forEach((playerName, index) => {
+    const div = document.createElement("div");
+    div.textContent = playerName;
+    if (index === gameState.activePlayerIndex) {
+      div.classList.add("active-player");
+    }
+    turnOrderElement.appendChild(div);
+  });
+
+  // Enable "End Turn" button if the player has not yet ended their turn
+  const currentPlayerState = gameState.players.find(
+    (player) => player.name === currentPlayerName
+  );
+
+  if (currentPlayerState && !currentPlayerState.hasEndedTurn) {
+    document.getElementById("end-turn-button").disabled = false;
+  } else {
+    document.getElementById("end-turn-button").disabled = true;
+  }
+}
+
+function endTurn() {
+  const currentPlayerName = document.getElementById("player-name").value;
+
+  // Notify the server that the player has finished their turn actions
+  sendAction("endTurn", { playerName: currentPlayerName });
+
+  // Disable the End Turn button after clicking
+  document.getElementById("end-turn-button").disabled = true;
+  alert("You have ended your turn!");
+}
