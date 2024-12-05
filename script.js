@@ -145,16 +145,6 @@ function generateScoreRows() {
   console.log("Score rows generated");
 }
 
-// REMOVE THIS DUPLICATE rollDice FUNCTION BLOCK THAT RANDOMLY GENERATES DICE
-// The server now handles rolling dice and broadcasting results,
-// so we only need the version that sends the action to the server.
-/*
-function rollDice() {
-  // This version of rollDice that locally generates dice should be removed.
-  // It's conflicting with the server-based logic. 
-}
-*/
-
 // Keep only the server-based rollDice function
 function rollDice() {
   const currentPlayerName = document.getElementById("player-name").value;
@@ -171,6 +161,8 @@ function rollDice() {
 
 function calculateMarkingOptions(diceValues, isActivePlayer) {
   const optionsContainer = document.getElementById("marking-options-list");
+  if (!optionsContainer) return;
+
   optionsContainer.innerHTML = ""; // Clear previous options
 
   // Create the sum of white dice option (available for everyone)
@@ -208,14 +200,16 @@ function createOptionElement(value, color) {
   return option;
 }
 
-// Display the options in the UI
+// Initialize marking options if the element exists
 const optionsList = document.getElementById("marking-options-list");
-optionsList.innerHTML = "";
-options.forEach((option) => {
-  const li = document.createElement("li");
-  li.textContent = option;
-  optionsList.appendChild(li);
-});
+if (optionsList && options.length > 0) {
+  optionsList.innerHTML = "";
+  options.forEach((option) => {
+    const li = document.createElement("li");
+    li.textContent = option;
+    optionsList.appendChild(li);
+  });
+}
 
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -228,7 +222,7 @@ function shuffle(array) {
 function updateGameUI(newState) {
   gameState = newState;
 
-  // Get currentPlayerName at the start, before using it
+  // Define currentPlayerName at the start
   const currentPlayerName = document.getElementById("player-name").value;
 
   // Update the dice display if diceValues are present
@@ -288,7 +282,6 @@ function updateGameUI(newState) {
 
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
-    // Check if started and turnEndedBy exist before using them
     const hasEndedTurn =
       (gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(currentPlayerName)) ||
