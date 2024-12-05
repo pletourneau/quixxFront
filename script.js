@@ -252,10 +252,7 @@ function updateGameUI(newState) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
       if (row) {
-        // The row includes numbers plus the final lock cell
-        // If there are N cells (N numbers + 1 lock), boards arrays have booleans only for the numbers.
         const boardArray = gameState.boards[currentPlayerName][color];
-        // Iterate through row children (excluding the last lock cell)
         for (let i = 0; i < boardArray.length; i++) {
           const cell = row.children[i];
           if (boardArray[i]) {
