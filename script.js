@@ -8,9 +8,9 @@ let currentRoom = "";
 ws.onopen = () => {
   console.log("WebSocket connection established!");
   generateScoreRows();
+  generatePenaltyBoxes();
 };
 
-// Join a room by sending the passcode and player name
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
@@ -88,7 +88,6 @@ function sendAction(type, payload = {}) {
   ws.send(JSON.stringify(message));
 }
 
-// Generate score rows
 function generateScoreRows() {
   const rowsConfig = {
     red: { start: 2, end: 12, lock: "LOCK" },
@@ -126,6 +125,16 @@ function generateScoreRows() {
   console.log("Score rows generated");
 }
 
+function generatePenaltyBoxes() {
+  const penaltiesContainer = document.getElementById("penalties-container");
+  penaltiesContainer.innerHTML = "";
+  for (let i = 0; i < 4; i++) {
+    const box = document.createElement("div");
+    box.className = "penalty-box";
+    penaltiesContainer.appendChild(box);
+  }
+}
+
 function attemptMarkCell(color, number) {
   const currentPlayerName = document.getElementById("player-name").value;
   if (!currentPlayerName) {
@@ -133,7 +142,6 @@ function attemptMarkCell(color, number) {
     return;
   }
 
-  // Just send the markCell action and let the server validate
   sendAction("markCell", {
     playerName: currentPlayerName,
     color,
@@ -161,8 +169,7 @@ function rollDice() {
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
   sendAction("endTurn", { playerName: currentPlayerName });
-  // We don't immediately proceed to next turn until all players have ended turn
-  // Just disable the button for now
+
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     endTurnButton.disabled = true;
@@ -180,7 +187,6 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
 
   const whiteSum = diceValues.white1 + diceValues.white2;
 
-  // Show white sum
   const whiteOption = createOptionElement(whiteSum, "white");
   optionsContainer.appendChild(whiteOption);
 
@@ -301,10 +307,6 @@ function updateGameUI(newState) {
 
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
-    // Everyone needs to end turn. If current player already ended turn, no need
-    // If you ended turn, button is disabled anyway.
-    // If you haven't ended turn yet, button should be enabled, even if you're not active,
-    // because all players must click end turn.
     const alreadyEnded =
       gameState.turnEndedBy &&
       gameState.turnEndedBy.includes(currentPlayerName);
@@ -319,5 +321,29 @@ function updateGameUI(newState) {
     if (optionsContainer) {
       optionsContainer.innerHTML = "";
     }
+  }
+
+  // Update penalty boxes for current player
+  if (
+    gameState.penalties &&
+    gameState.penalties[currentPlayerName] !== undefined
+  ) {
+    const penaltyCount = gameState.penalties[currentPlayerName];
+    const penaltiesContainer = document.getElementById("penalties-container");
+    if (penaltiesContainer) {
+      for (let i = 0; i < 4; i++) {
+        const box = penaltiesContainer.children[i];
+        if (i < penaltyCount) {
+          box.classList.add("crossed");
+        } else {
+          box.classList.remove("crossed");
+        }
+      }
+    }
+  }
+
+  // If game over, show message
+  if (gameState.gameOver) {
+    document.getElementById("game-over-message").style.display = "block";
   }
 }

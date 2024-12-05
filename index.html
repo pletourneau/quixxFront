@@ -116,6 +116,37 @@
         font-size: 1.5rem;
         margin-bottom: 10px;
       }
+
+      .penalties-section {
+        margin-top: 20px;
+      }
+      .penalty-boxes {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+      .penalty-box {
+        width: 40px;
+        height: 40px;
+        border: 2px solid #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        background-color: white;
+        cursor: default;
+      }
+      .penalty-box.crossed {
+        background-color: #ccc;
+        text-decoration: line-through;
+      }
+
+      #game-over-message {
+        font-size: 2rem;
+        color: red;
+        margin-top: 20px;
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -169,6 +200,15 @@
         <div class="score-row green" id="green-row"></div>
         <div class="score-row blue" id="blue-row"></div>
       </div>
+
+      <div class="penalties-section">
+        <h3>Your Penalties:</h3>
+        <div id="penalties-container" class="penalty-boxes">
+          <!-- Penalty boxes will be generated dynamically -->
+        </div>
+      </div>
+
+      <div id="game-over-message">Game Over!</div>
     </div>
 
     <script src="script.js"></script>
