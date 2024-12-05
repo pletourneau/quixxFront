@@ -1,6 +1,8 @@
 // Connect to the WebSocket server
 const ws = new WebSocket("wss://quixxback.onrender.com");
 
+let gameState = null;
+
 ws.onopen = () => {
   console.log("WebSocket connection established!");
 };
@@ -10,6 +12,7 @@ let playerBoardCache = {};
 let isRoomCreator = false;
 let currentRoom = ""; // Track the current room name
 const options = [];
+
 // Join a room by sending the passcode and player name
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
@@ -50,17 +53,11 @@ function updateTurnOrder(turnOrder) {
 // Listen for updates from the server
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log("WebSocket message received:", data);
+
   if (data.type === "gameState") {
-    console.log("Received game state:", data);
-
-    // Show game screen if the game has started
-    if (data.started) {
-      console.log("Game has started. Showing game screen...");
-      showGameScreen(); // Ensure the game screen is displayed
-    }
-
-    updateGameUI(data); // Update the UI with the game state
+    updateGameUI(data); // Update UI based on the latest game state
+  } else if (data.type === "error") {
+    alert(data.message); // Handle errors from the server
   } else if (data.type === "roomStatus") {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
@@ -148,34 +145,28 @@ function generateScoreRows() {
   console.log("Score rows generated");
 }
 
+// REMOVE THIS DUPLICATE rollDice FUNCTION BLOCK THAT RANDOMLY GENERATES DICE
+// The server now handles rolling dice and broadcasting results,
+// so we only need the version that sends the action to the server.
+/*
 function rollDice() {
-  // Randomly generate dice values
-  const diceValues = {
-    white1: Math.floor(Math.random() * 6) + 1,
-    white2: Math.floor(Math.random() * 6) + 1,
-    red: Math.floor(Math.random() * 6) + 1,
-    yellow: Math.floor(Math.random() * 6) + 1,
-    green: Math.floor(Math.random() * 6) + 1,
-    blue: Math.floor(Math.random() * 6) + 1,
-  };
+  // This version of rollDice that locally generates dice should be removed.
+  // It's conflicting with the server-based logic. 
+}
+*/
 
-  // Display the dice values on the screen
-  for (const dice in diceValues) {
-    const diceElement = document.getElementById(dice);
-    if (diceElement) {
-      diceElement.textContent = diceValues[dice];
-    }
+// Keep only the server-based rollDice function
+function rollDice() {
+  const currentPlayerName = document.getElementById("player-name").value;
+  if (
+    gameState &&
+    gameState.turnOrder &&
+    gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName
+  ) {
+    sendAction("rollDice"); // Notify server to roll dice
+  } else {
+    alert("It's not your turn to roll the dice.");
   }
-
-  // Determine if the player is the active player
-  const isActivePlayer = true; // Replace with actual logic to check active player
-
-  // Calculate and display marking options
-  calculateMarkingOptions(diceValues, isActivePlayer);
-
-  // Notify the server about the dice roll
-  sendAction("rollDice", diceValues);
-  console.log("Dice rolled:", diceValues);
 }
 
 function calculateMarkingOptions(diceValues, isActivePlayer) {
@@ -204,12 +195,6 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
       const colorOption = createOptionElement(value, color);
       optionsContainer.appendChild(colorOption);
     });
-
-    // Add the sequence for marking both numbers (first sum + second sum)
-    // const firstMarkOption = document.createElement("div");
-    // firstMarkOption.textContent = `First mark: ${sumWhiteDice}, then choose a second option.`;
-    // firstMarkOption.style.marginTop = "10px";
-    // optionsContainer.appendChild(firstMarkOption);
   }
 }
 
@@ -225,7 +210,7 @@ function createOptionElement(value, color) {
 
 // Display the options in the UI
 const optionsList = document.getElementById("marking-options-list");
-optionsList.innerHTML = ""; // Clear previous options
+optionsList.innerHTML = "";
 options.forEach((option) => {
   const li = document.createElement("li");
   li.textContent = option;
@@ -240,16 +225,32 @@ function shuffle(array) {
 }
 
 // Update the UI with the shared game state
-function updateGameUI(gameState) {
+function updateGameUI(newState) {
+  gameState = newState;
+
+  // Get currentPlayerName at the start, before using it
+  const currentPlayerName = document.getElementById("player-name").value;
+
+  // Update the dice display if diceValues are present
+  if (gameState.diceValues) {
+    Object.entries(gameState.diceValues).forEach(([dice, value]) => {
+      const diceElement = document.getElementById(dice);
+      if (diceElement) {
+        diceElement.textContent = value;
+      }
+    });
+  }
+
   // Update player list
   const playerInfo = document.getElementById("player-info");
   if (gameState.players) {
     playerInfo.innerHTML = `<h3>Players in the Room:</h3>`;
     gameState.players.forEach((player) => {
       const playerElement = document.createElement("div");
+      playerElement.classList.add("player");
       playerElement.textContent = player.name;
 
-      // Highlight players who have ended their turn
+      // Check if turnEndedBy exists and if player is included
       if (
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(player.name)
@@ -278,18 +279,29 @@ function updateGameUI(gameState) {
     });
   }
 
-  // Enable/Disable End Turn button
-  const endTurnButton = document.querySelector("button[onclick='endTurn()']");
-  const currentPlayerName = document.getElementById("player-name").value;
+  // Update buttons
+  const rollDiceButton = document.querySelector("button[onclick='rollDice()']");
+  if (rollDiceButton) {
+    rollDiceButton.disabled =
+      gameState.turnOrder[gameState.activePlayerIndex] !== currentPlayerName;
+  }
 
-  if (
-    gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName &&
-    gameState.started &&
-    !gameState.turnEndedBy.includes(currentPlayerName)
-  ) {
-    endTurnButton.disabled = false; // Enable if the player hasn't ended their turn
-  } else {
-    endTurnButton.disabled = true; // Disable otherwise
+  const endTurnButton = document.querySelector("button[onclick='endTurn()']");
+  if (endTurnButton) {
+    // Check if started and turnEndedBy exist before using them
+    const hasEndedTurn =
+      (gameState.turnEndedBy &&
+        gameState.turnEndedBy.includes(currentPlayerName)) ||
+      false;
+    if (
+      gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName &&
+      gameState.started &&
+      !hasEndedTurn
+    ) {
+      endTurnButton.disabled = false; // Enable if the player hasn't ended their turn
+    } else {
+      endTurnButton.disabled = true; // Disable otherwise
+    }
   }
 }
 
@@ -299,9 +311,10 @@ function endTurn() {
   // Notify the server that the player has ended their turn
   sendAction("endTurn", { playerName: currentPlayerName });
 
-  // Disable the End Turn button for this player
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
-  endTurnButton.disabled = true;
+  if (endTurnButton) {
+    endTurnButton.disabled = true;
+  }
 
   alert("You have ended your turn!");
 }
