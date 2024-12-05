@@ -5,6 +5,7 @@ let gameState = null;
 
 ws.onopen = () => {
   console.log("WebSocket connection established!");
+  generateScoreRows();
 };
 
 // Cache for player boards
@@ -120,12 +121,29 @@ function generateScoreRows() {
 
       const { start, end, lock } = rowsConfig[color];
       const step = start < end ? 1 : -1;
+      const numbers = [];
 
-      for (let i = start; i !== end + step; i += step) {
+      numbers.forEach((num, index) => {
         const cell = document.createElement("div");
-        cell.textContent = i;
+        cell.textContent = num;
         cell.className = "score-cell";
+        cell.addEventListener("click", () => markCell(color, num));
         row.appendChild(cell);
+      });
+
+      function markCell(color, number) {
+        const currentPlayerName = document.getElementById("player-name").value;
+        if (!currentPlayerName) {
+          alert("You must enter your name first.");
+          return;
+        }
+
+        // Send "markCell" action to the server
+        sendAction("markCell", {
+          playerName: currentPlayerName,
+          color,
+          number,
+        });
       }
 
       // Add lock column
@@ -221,6 +239,26 @@ function updateGameUI(newState) {
       const diceElement = document.getElementById(dice);
       if (diceElement) {
         diceElement.textContent = value;
+      }
+    });
+  }
+
+  if (gameState.boards && gameState.boards[currentPlayerName]) {
+    ["red", "yellow", "green", "blue"].forEach((color) => {
+      const row = document.getElementById(`${color}-row`);
+      if (row) {
+        // The row includes numbers plus the final lock cell
+        // If there are N cells (N numbers + 1 lock), boards arrays have booleans only for the numbers.
+        const boardArray = gameState.boards[currentPlayerName][color];
+        // Iterate through row children (excluding the last lock cell)
+        for (let i = 0; i < boardArray.length; i++) {
+          const cell = row.children[i];
+          if (boardArray[i]) {
+            cell.classList.add("crossed");
+          } else {
+            cell.classList.remove("crossed");
+          }
+        }
       }
     });
   }
