@@ -147,6 +147,20 @@
         margin-top: 20px;
         display: none;
       }
+
+      #scoreboard {
+        margin-top: 20px;
+        display: none;
+      }
+      #scoreboard table {
+        margin: 0 auto;
+        border-collapse: collapse;
+      }
+      #scoreboard th,
+      #scoreboard td {
+        border: 1px solid #000;
+        padding: 5px 10px;
+      }
     </style>
   </head>
   <body>
@@ -203,12 +217,11 @@
 
       <div class="penalties-section">
         <h3>Your Penalties:</h3>
-        <div id="penalties-container" class="penalty-boxes">
-          <!-- Penalty boxes will be generated dynamically -->
-        </div>
+        <div id="penalties-container" class="penalty-boxes"></div>
       </div>
 
       <div id="game-over-message">Game Over!</div>
+      <div id="scoreboard"></div>
     </div>
 
     <script src="script.js"></script>

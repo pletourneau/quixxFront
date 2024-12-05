@@ -1,4 +1,3 @@
-// Connect to the WebSocket server
 const ws = new WebSocket("wss://quixxback.onrender.com");
 
 let gameState = null;
@@ -191,16 +190,31 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
   optionsContainer.appendChild(whiteOption);
 
   if (isActivePlayer) {
-    const whiteAndColorSums = [
-      { color: "red", value: diceValues.white1 + diceValues.red },
-      { color: "red", value: diceValues.white2 + diceValues.red },
-      { color: "yellow", value: diceValues.white1 + diceValues.yellow },
-      { color: "yellow", value: diceValues.white2 + diceValues.yellow },
-      { color: "green", value: diceValues.white1 + diceValues.green },
-      { color: "green", value: diceValues.white2 + diceValues.green },
-      { color: "blue", value: diceValues.white1 + diceValues.blue },
-      { color: "blue", value: diceValues.white2 + diceValues.blue },
-    ];
+    const whiteAndColorSums = [];
+    if (diceValues.red !== undefined) {
+      whiteAndColorSums.push(
+        { color: "red", value: diceValues.white1 + diceValues.red },
+        { color: "red", value: diceValues.white2 + diceValues.red }
+      );
+    }
+    if (diceValues.yellow !== undefined) {
+      whiteAndColorSums.push(
+        { color: "yellow", value: diceValues.white1 + diceValues.yellow },
+        { color: "yellow", value: diceValues.white2 + diceValues.yellow }
+      );
+    }
+    if (diceValues.green !== undefined) {
+      whiteAndColorSums.push(
+        { color: "green", value: diceValues.white1 + diceValues.green },
+        { color: "green", value: diceValues.white2 + diceValues.green }
+      );
+    }
+    if (diceValues.blue !== undefined) {
+      whiteAndColorSums.push(
+        { color: "blue", value: diceValues.white1 + diceValues.blue },
+        { color: "blue", value: diceValues.white2 + diceValues.blue }
+      );
+    }
 
     whiteAndColorSums.forEach(({ color, value }) => {
       const colorOption = createOptionElement(value, color);
@@ -223,6 +237,42 @@ function shuffle(array) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
   }
+}
+
+function displayScoreboard(scoreboard) {
+  const scoreboardDiv = document.getElementById("scoreboard");
+  scoreboardDiv.innerHTML = "<h3>Final Scores:</h3>";
+  const table = document.createElement("table");
+  const header = document.createElement("tr");
+  ["Player", "Red", "Yellow", "Green", "Blue", "Penalties", "Total"].forEach(
+    (h) => {
+      const th = document.createElement("th");
+      th.textContent = h;
+      header.appendChild(th);
+    }
+  );
+  table.appendChild(header);
+
+  scoreboard.forEach((s) => {
+    const row = document.createElement("tr");
+    [
+      s.player,
+      s.redScore,
+      s.yellowScore,
+      s.greenScore,
+      s.blueScore,
+      s.penaltiesScore,
+      s.totalScore,
+    ].forEach((val) => {
+      const td = document.createElement("td");
+      td.textContent = val;
+      row.appendChild(td);
+    });
+    table.appendChild(row);
+  });
+
+  scoreboardDiv.appendChild(table);
+  scoreboardDiv.style.display = "block";
 }
 
 function updateGameUI(newState) {
@@ -302,7 +352,16 @@ function updateGameUI(newState) {
   // Update buttons
   const rollDiceButton = document.querySelector("button[onclick='rollDice()']");
   if (rollDiceButton) {
-    rollDiceButton.disabled = !isActivePlayer || gameState.diceRolledThisTurn;
+    rollDiceButton.disabled =
+      !isActivePlayer || gameState.diceRolledThisTurn === undefined
+        ? true
+        : !gameState.diceRolledThisTurn && !isActivePlayer;
+    if (isActivePlayer && !gameState.diceRolledThisTurn) {
+      rollDiceButton.disabled = false;
+    }
+    if (!isActivePlayer) rollDiceButton.disabled = true;
+    if (gameState.diceRolledThisTurn && !isActivePlayer)
+      rollDiceButton.disabled = true;
   }
 
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
@@ -314,7 +373,7 @@ function updateGameUI(newState) {
   }
 
   // Update marking options for reference
-  if (gameState.diceValues && gameState.started) {
+  if (gameState.diceValues && gameState.started && !gameState.gameOver) {
     calculateMarkingOptions(gameState.diceValues, isActivePlayer);
   } else {
     const optionsContainer = document.getElementById("marking-options-list");
@@ -342,8 +401,11 @@ function updateGameUI(newState) {
     }
   }
 
-  // If game over, show message
+  // If game over, show message and scoreboard
   if (gameState.gameOver) {
     document.getElementById("game-over-message").style.display = "block";
+    if (gameState.scoreboard) {
+      displayScoreboard(gameState.scoreboard);
+    }
   }
 }
