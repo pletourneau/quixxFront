@@ -35,24 +35,26 @@
         border-radius: 8px;
         font-weight: bold;
         color: white;
+        cursor: pointer;
       }
-      .white {
+      .dice.white {
         background-color: white;
         color: black;
       }
-      .red {
+      .dice.red {
         background-color: red;
       }
-      .yellow {
+      .dice.yellow {
         background-color: yellow;
         color: black;
       }
-      .green {
+      .dice.green {
         background-color: green;
       }
-      .blue {
+      .dice.blue {
         background-color: blue;
       }
+
       .score-sheet {
         margin-top: 30px;
       }
@@ -79,6 +81,7 @@
         background-color: blue;
         color: white;
       }
+
       .score-cell {
         width: 40px;
         height: 40px;
@@ -98,42 +101,13 @@
         color: white;
         cursor: default;
       }
+
       button {
         padding: 10px 20px;
         margin-top: 20px;
         font-size: 1rem;
       }
-      .slider-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-top: 30px;
-      }
-      .slider-button {
-        background-color: #ddd;
-        border: none;
-        font-size: 1.5rem;
-        padding: 10px;
-        cursor: pointer;
-        margin: 0 10px;
-      }
-      .other-boards-container {
-        width: 60%;
-        margin: 0 auto;
-        overflow: hidden;
-      }
-      .player-board {
-        display: none;
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      .player-board.active {
-        display: block;
-      }
-      .player-name {
-        font-weight: bold;
-        margin-bottom: 10px;
-      }
+
       .player-list {
         margin: 20px 0;
         font-size: 1.2rem;
@@ -148,20 +122,15 @@
   <body>
     <h1>Qwixx Online - Dice Game</h1>
 
-    <!-- Join Game Section (Always visible) -->
     <div id="join-game-screen">
       <h2>Join a Game</h2>
       <input type="text" id="player-name" placeholder="Enter your name" />
       <input type="text" id="passcode" placeholder="Enter game passcode" />
       <button onclick="joinGame()">Join Game</button>
-      <!-- Display Room Name -->
       <div id="room-name"></div>
-      <!-- Player List Section -->
       <div id="player-info" class="player-list">
         <h3>Players in the Room:</h3>
-        <!-- Player names will be dynamically added here -->
       </div>
-      <!-- Start Game Button -->
       <div>
         <button id="start-game" style="display: none" onclick="startGame()">
           Start Game
@@ -169,18 +138,14 @@
       </div>
     </div>
 
-    <!-- Game Screen (Now always visible) -->
     <div id="game-screen">
       <h2>Game Screen</h2>
 
-      <!-- Turn Order Section -->
       <div id="turn-order" class="player-list">
         <h3>Turn Order:</h3>
-        <!-- Turn order will be displayed here -->
         <div id="no-turn-order-message">No turn order yet</div>
       </div>
 
-      <!-- Dice Section -->
       <div class="dice-container" id="dice-container">
         <div class="dice white" id="white1">🎲</div>
         <div class="dice white" id="white2">🎲</div>
@@ -198,20 +163,12 @@
       <button onclick="rollDice()">Roll Dice</button>
       <button onclick="endTurn()">End Turn</button>
 
-      <!-- Main Score Sheet Section -->
       <div class="score-sheet">
         <h2>Your Score Sheet</h2>
         <div class="score-row red" id="red-row"></div>
         <div class="score-row yellow" id="yellow-row"></div>
         <div class="score-row green" id="green-row"></div>
         <div class="score-row blue" id="blue-row"></div>
-      </div>
-
-      <!-- Other Players' Boards -->
-      <div class="slider-container">
-        <button class="slider-button" onclick="showPreviousBoard()">⬅</button>
-        <div class="other-boards-container" id="other-boards-container"></div>
-        <button class="slider-button" onclick="showNextBoard()">➡</button>
       </div>
     </div>
 

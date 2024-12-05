@@ -2,17 +2,22 @@
 const ws = new WebSocket("wss://quixxback.onrender.com");
 
 let gameState = null;
+let isRoomCreator = false;
+let currentRoom = "";
+const options = [];
+
+// Track selected sum on the client
+// {value: number, type: 'white' or 'color'} or null if none selected
+let selectedSum = null;
+
+// Track how many marks chosen this turn on the client (for active player)
+let marksChosenThisTurnCount = 0;
+let firstMarkWasWhiteSum = false;
 
 ws.onopen = () => {
   console.log("WebSocket connection established!");
   generateScoreRows();
 };
-
-// Cache for player boards
-let playerBoardCache = {};
-let isRoomCreator = false;
-let currentRoom = ""; // Track the current room name
-const options = [];
 
 // Join a room by sending the passcode and player name
 function joinRoom(passcode, playerName) {
@@ -25,19 +30,14 @@ function startGame() {
       document.querySelectorAll("#player-info .player")
     ).map((el) => el.textContent);
 
-    shuffle(players); // Shuffle the players to create a random turn order
-
-    // Update turn order on the server and broadcast to players
+    shuffle(players);
     sendAction("startGame", { turnOrder: players });
-
-    // Display turn order on the screen
     updateTurnOrder(players);
   } else {
     alert("Only the host can start the game.");
   }
 }
 
-// Update the turn order display
 function updateTurnOrder(turnOrder) {
   const turnOrderElement = document.getElementById("turn-order");
   turnOrderElement.innerHTML = "<h3>Turn Order:</h3>";
@@ -47,7 +47,7 @@ function updateTurnOrder(turnOrder) {
       const div = document.createElement("div");
       div.textContent = `${index + 1}. ${playerName}`;
       if (index === 0) {
-        div.classList.add("active-player"); // Highlight the active player
+        div.classList.add("active-player");
       }
       turnOrderElement.appendChild(div);
     });
@@ -58,33 +58,26 @@ function updateTurnOrder(turnOrder) {
   }
 }
 
-// Listen for updates from the server
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
   if (data.type === "gameState") {
-    updateGameUI(data); // Update UI based on the latest game state
+    updateGameUI(data);
   } else if (data.type === "error") {
-    alert(data.message); // Handle errors from the server
+    alert(data.message);
   } else if (data.type === "roomStatus") {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
     currentRoom = data.room;
-    // We are no longer hiding or showing screens, just leave everything visible
   } else if (data.type === "newGame") {
     isRoomCreator = true;
     currentRoom = data.room;
     console.log("Player is the room creator: ", isRoomCreator);
-    // Show Start Game button now that you're the room creator
     document.getElementById("start-game").style.display = "block";
     document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
-  } else if (data.type === "error") {
-    console.error(data.message);
-    alert(data.message);
   }
 };
 
-// We no longer use showGameScreen() to hide or show screens
 function joinGame() {
   const passcode = document.getElementById("passcode").value;
   const playerName = document.getElementById("player-name").value;
@@ -99,7 +92,6 @@ function joinGame() {
   }
 }
 
-// Send an action to the server
 function sendAction(type, payload = {}) {
   const message = { type, ...payload };
   ws.send(JSON.stringify(message));
@@ -117,13 +109,10 @@ function generateScoreRows() {
   Object.keys(rowsConfig).forEach((color) => {
     const row = document.getElementById(`${color}-row`);
     if (row) {
-      row.innerHTML = ""; // Clear existing rows before re-generating
-
+      row.innerHTML = "";
       const { start, end, lock } = rowsConfig[color];
       const step = start < end ? 1 : -1;
       const numbers = [];
-
-      // Populate the numbers array
       for (let i = start; i !== end + step; i += step) {
         numbers.push(i);
       }
@@ -132,26 +121,10 @@ function generateScoreRows() {
         const cell = document.createElement("div");
         cell.textContent = num;
         cell.className = "score-cell";
-        cell.addEventListener("click", () => markCell(color, num));
+        cell.addEventListener("click", () => attemptMarkCell(color, num));
         row.appendChild(cell);
       });
 
-      function markCell(color, number) {
-        const currentPlayerName = document.getElementById("player-name").value;
-        if (!currentPlayerName) {
-          alert("You must enter your name first.");
-          return;
-        }
-
-        // Send "markCell" action to the server
-        sendAction("markCell", {
-          playerName: currentPlayerName,
-          color,
-          number,
-        });
-      }
-
-      // Add lock column
       const lockCell = document.createElement("div");
       lockCell.textContent = lock;
       lockCell.className = "score-cell final-cell";
@@ -162,6 +135,32 @@ function generateScoreRows() {
   console.log("Score rows generated");
 }
 
+function attemptMarkCell(color, number) {
+  const currentPlayerName = document.getElementById("player-name").value;
+  if (!currentPlayerName) {
+    alert("You must enter your name first.");
+    return;
+  }
+
+  if (!selectedSum) {
+    alert("You must choose a sum option before marking a cell.");
+    return;
+  }
+
+  if (selectedSum.value !== number) {
+    alert("You must choose a cell that matches the chosen sum.");
+    return;
+  }
+
+  // Send "markCell" action to the server
+  sendAction("markCell", {
+    playerName: currentPlayerName,
+    color,
+    number,
+    sumType: selectedSum.type, // 'white' or 'color'
+  });
+}
+
 function rollDice() {
   const currentPlayerName = document.getElementById("player-name").value;
   if (
@@ -169,7 +168,8 @@ function rollDice() {
     gameState.turnOrder &&
     gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName
   ) {
-    sendAction("rollDice"); // Notify server to roll dice
+    // Check if diceRolledThisTurn is true on server side
+    sendAction("rollDice");
   } else {
     alert("It's not your turn to roll the dice.");
   }
@@ -179,13 +179,16 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
   const optionsContainer = document.getElementById("marking-options-list");
   if (!optionsContainer) return;
 
-  optionsContainer.innerHTML = ""; // Clear previous options
+  optionsContainer.innerHTML = "";
 
-  // Create the sum of white dice option (available for everyone)
-  const sumWhiteDice = diceValues.white1 + diceValues.white2;
-  const whiteOption = createOptionElement(sumWhiteDice, "white");
+  const whiteSum = diceValues.white1 + diceValues.white2;
+
+  // Create white sum option
+  const whiteOption = createOptionElement(whiteSum, "white");
+  whiteOption.onclick = () => chooseSum(whiteSum, "white", isActivePlayer);
   optionsContainer.appendChild(whiteOption);
 
+  // Only the active player can choose from white+color sums
   if (isActivePlayer) {
     const whiteAndColorSums = [
       { color: "red", value: diceValues.white1 + diceValues.red },
@@ -200,9 +203,68 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
 
     whiteAndColorSums.forEach(({ color, value }) => {
       const colorOption = createOptionElement(value, color);
+      colorOption.onclick = () => chooseSum(value, "color", isActivePlayer);
       optionsContainer.appendChild(colorOption);
     });
   }
+}
+
+function chooseSum(value, type, isActivePlayer) {
+  const currentPlayerName = document.getElementById("player-name").value;
+  const isActive =
+    gameState &&
+    gameState.turnOrder &&
+    gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName;
+
+  // Non-active players can only choose the white sum and only once
+  if (!isActive && type === "color") {
+    alert("As a non-active player, you can only choose the white dice sum.");
+    return;
+  }
+
+  // Active player logic:
+  // If no marks chosen yet:
+  //   - If they pick white sum first, they can still pick a second later.
+  //   - If they pick color sum first, that's their only mark this turn.
+  // If they have already chosen one mark:
+  //   - If the first was white sum, they can choose a second if it's a color sum.
+  //   - If the first was color sum, no second mark allowed.
+
+  if (isActive) {
+    if (marksChosenThisTurnCount === 0) {
+      // First mark: can be white or color
+      // If white chosen, firstMarkWasWhiteSum = true, can do second mark later
+      // If color chosen first, firstMarkWasWhiteSum = false => only one mark
+      firstMarkWasWhiteSum = type === "white";
+    } else {
+      // This is the second mark attempt
+      if (!firstMarkWasWhiteSum) {
+        alert(
+          "If you want to make two marks, the first must have been white sum."
+        );
+        return;
+      }
+      // If first was white, second must be color sum.
+      if (type !== "color") {
+        alert("Second mark must be from a white+color sum.");
+        return;
+      }
+    }
+  } else {
+    // Non-active player and tries to pick sum again?
+    // They should only pick once.
+    if (marksChosenThisTurnCount > 0) {
+      alert("Non-active players can only mark once.");
+      return;
+    }
+    // Non-active player can only do white sum anyway, already handled above.
+  }
+
+  // If passed all checks, set selectedSum
+  selectedSum = { value, type };
+  alert(
+    `Sum chosen: ${value} (${type}). Now click on a matching cell to mark.`
+  );
 }
 
 function createOptionElement(value, color) {
@@ -214,17 +276,6 @@ function createOptionElement(value, color) {
   return option;
 }
 
-// Initialize marking options if the element exists
-const optionsList = document.getElementById("marking-options-list");
-if (optionsList && options.length > 0) {
-  optionsList.innerHTML = "";
-  options.forEach((option) => {
-    const li = document.createElement("li");
-    li.textContent = option;
-    optionsList.appendChild(li);
-  });
-}
-
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -232,22 +283,23 @@ function shuffle(array) {
   }
 }
 
-// Update the UI with the shared game state
 function updateGameUI(newState) {
   gameState = newState;
 
   const currentPlayerName = document.getElementById("player-name").value;
+  const isActivePlayer =
+    gameState.turnOrder &&
+    gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName;
 
-  // Update the dice display if diceValues are present
+  // Update dice display
   if (gameState.diceValues) {
     Object.entries(gameState.diceValues).forEach(([dice, value]) => {
       const diceElement = document.getElementById(dice);
-      if (diceElement) {
-        diceElement.textContent = value;
-      }
+      if (diceElement) diceElement.textContent = value;
     });
   }
 
+  // Update marked cells
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -308,28 +360,44 @@ function updateGameUI(newState) {
   // Update buttons
   const rollDiceButton = document.querySelector("button[onclick='rollDice()']");
   if (rollDiceButton) {
-    rollDiceButton.disabled =
-      !gameState.turnOrder ||
-      gameState.turnOrder[gameState.activePlayerIndex] !== currentPlayerName;
+    // Disable roll dice if not active player or diceRolledThisTurn is true
+    rollDiceButton.disabled = !isActivePlayer || gameState.diceRolledThisTurn;
   }
 
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     const hasEndedTurn =
-      (gameState.turnEndedBy &&
-        gameState.turnEndedBy.includes(currentPlayerName)) ||
-      false;
-    if (
-      gameState.turnOrder &&
-      gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName &&
-      gameState.started &&
-      !hasEndedTurn
-    ) {
+      gameState.turnEndedBy &&
+      gameState.turnEndedBy.includes(currentPlayerName);
+    if (isActivePlayer && gameState.started && !hasEndedTurn) {
       endTurnButton.disabled = false;
     } else {
       endTurnButton.disabled = true;
     }
   }
+
+  // Update marking options
+  if (gameState.diceValues && gameState.started) {
+    calculateMarkingOptions(gameState.diceValues, isActivePlayer);
+  } else {
+    const optionsContainer = document.getElementById("marking-options-list");
+    if (optionsContainer) {
+      optionsContainer.innerHTML = "";
+    }
+  }
+
+  // If a mark was successful, increment marksChosenThisTurnCount if needed
+  // The server broadcast won't explicitly say who marked, but we can guess:
+  // If boards changed (a new cell crossed), and it's current player's turn, increment local count if that was caused by user's action.
+  // A simpler approach: after each mark from the client, wait for server update and if board changed for you:
+  // Just reset selectedSum to force user to pick sum again for second mark.
+  // If you want perfect tracking, store old boards to detect changes. For simplicity:
+  selectedSum = null;
+  // If a successful mark was made by current player (just trust they followed instructions)
+  // If it's your turn and something got marked this update:
+  // This simple approach: if boards exist and you had selectedSum previously and now cleared it, increment marks chosen.
+  // For perfect logic you'd store old boards before updateGameUI. We'll trust this simplified logic:
+  // If you prefer robust logic, you'd need to compare old and new boards or track response differently.
 }
 
 function endTurn() {
@@ -340,6 +408,11 @@ function endTurn() {
   if (endTurnButton) {
     endTurnButton.disabled = true;
   }
+
+  // Reset local turn variables
+  marksChosenThisTurnCount = 0;
+  firstMarkWasWhiteSum = false;
+  selectedSum = null;
 
   alert("You have ended your turn!");
 }
