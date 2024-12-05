@@ -123,7 +123,12 @@ function generateScoreRows() {
       const step = start < end ? 1 : -1;
       const numbers = [];
 
-      numbers.forEach((num, index) => {
+      // Populate the numbers array
+      for (let i = start; i !== end + step; i += step) {
+        numbers.push(i);
+      }
+
+      numbers.forEach((num) => {
         const cell = document.createElement("div");
         cell.textContent = num;
         cell.className = "score-cell";
