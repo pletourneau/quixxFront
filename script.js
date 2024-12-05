@@ -4,15 +4,6 @@ const ws = new WebSocket("wss://quixxback.onrender.com");
 let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
-const options = [];
-
-// Track selected sum on the client
-// {value: number, type: 'white' or 'color'} or null if none selected
-let selectedSum = null;
-
-// Track how many marks chosen this turn on the client (for active player)
-let marksChosenThisTurnCount = 0;
-let firstMarkWasWhiteSum = false;
 
 ws.onopen = () => {
   console.log("WebSocket connection established!");
@@ -142,22 +133,11 @@ function attemptMarkCell(color, number) {
     return;
   }
 
-  if (!selectedSum) {
-    alert("You must choose a sum option before marking a cell.");
-    return;
-  }
-
-  if (selectedSum.value !== number) {
-    alert("You must choose a cell that matches the chosen sum.");
-    return;
-  }
-
-  // Send "markCell" action to the server
+  // Just send the markCell action and let the server validate
   sendAction("markCell", {
     playerName: currentPlayerName,
     color,
     number,
-    sumType: selectedSum.type, // 'white' or 'color'
   });
 }
 
@@ -168,11 +148,28 @@ function rollDice() {
     gameState.turnOrder &&
     gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName
   ) {
-    // Check if diceRolledThisTurn is true on server side
+    if (gameState.diceRolledThisTurn) {
+      alert("Dice have already been rolled this turn.");
+      return;
+    }
     sendAction("rollDice");
   } else {
     alert("It's not your turn to roll the dice.");
   }
+}
+
+function endTurn() {
+  const currentPlayerName = document.getElementById("player-name").value;
+  sendAction("endTurn", { playerName: currentPlayerName });
+  // We don't immediately proceed to next turn until all players have ended turn
+  // Just disable the button for now
+  const endTurnButton = document.querySelector("button[onclick='endTurn()']");
+  if (endTurnButton) {
+    endTurnButton.disabled = true;
+  }
+  alert(
+    "You have ended your turn! Waiting for all players to end their turn..."
+  );
 }
 
 function calculateMarkingOptions(diceValues, isActivePlayer) {
@@ -183,12 +180,10 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
 
   const whiteSum = diceValues.white1 + diceValues.white2;
 
-  // Create white sum option
+  // Show white sum
   const whiteOption = createOptionElement(whiteSum, "white");
-  whiteOption.onclick = () => chooseSum(whiteSum, "white", isActivePlayer);
   optionsContainer.appendChild(whiteOption);
 
-  // Only the active player can choose from white+color sums
   if (isActivePlayer) {
     const whiteAndColorSums = [
       { color: "red", value: diceValues.white1 + diceValues.red },
@@ -203,68 +198,9 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
 
     whiteAndColorSums.forEach(({ color, value }) => {
       const colorOption = createOptionElement(value, color);
-      colorOption.onclick = () => chooseSum(value, "color", isActivePlayer);
       optionsContainer.appendChild(colorOption);
     });
   }
-}
-
-function chooseSum(value, type, isActivePlayer) {
-  const currentPlayerName = document.getElementById("player-name").value;
-  const isActive =
-    gameState &&
-    gameState.turnOrder &&
-    gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName;
-
-  // Non-active players can only choose the white sum and only once
-  if (!isActive && type === "color") {
-    alert("As a non-active player, you can only choose the white dice sum.");
-    return;
-  }
-
-  // Active player logic:
-  // If no marks chosen yet:
-  //   - If they pick white sum first, they can still pick a second later.
-  //   - If they pick color sum first, that's their only mark this turn.
-  // If they have already chosen one mark:
-  //   - If the first was white sum, they can choose a second if it's a color sum.
-  //   - If the first was color sum, no second mark allowed.
-
-  if (isActive) {
-    if (marksChosenThisTurnCount === 0) {
-      // First mark: can be white or color
-      // If white chosen, firstMarkWasWhiteSum = true, can do second mark later
-      // If color chosen first, firstMarkWasWhiteSum = false => only one mark
-      firstMarkWasWhiteSum = type === "white";
-    } else {
-      // This is the second mark attempt
-      if (!firstMarkWasWhiteSum) {
-        alert(
-          "If you want to make two marks, the first must have been white sum."
-        );
-        return;
-      }
-      // If first was white, second must be color sum.
-      if (type !== "color") {
-        alert("Second mark must be from a white+color sum.");
-        return;
-      }
-    }
-  } else {
-    // Non-active player and tries to pick sum again?
-    // They should only pick once.
-    if (marksChosenThisTurnCount > 0) {
-      alert("Non-active players can only mark once.");
-      return;
-    }
-    // Non-active player can only do white sum anyway, already handled above.
-  }
-
-  // If passed all checks, set selectedSum
-  selectedSum = { value, type };
-  alert(
-    `Sum chosen: ${value} (${type}). Now click on a matching cell to mark.`
-  );
 }
 
 function createOptionElement(value, color) {
@@ -360,23 +296,22 @@ function updateGameUI(newState) {
   // Update buttons
   const rollDiceButton = document.querySelector("button[onclick='rollDice()']");
   if (rollDiceButton) {
-    // Disable roll dice if not active player or diceRolledThisTurn is true
     rollDiceButton.disabled = !isActivePlayer || gameState.diceRolledThisTurn;
   }
 
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
-    const hasEndedTurn =
+    // Everyone needs to end turn. If current player already ended turn, no need
+    // If you ended turn, button is disabled anyway.
+    // If you haven't ended turn yet, button should be enabled, even if you're not active,
+    // because all players must click end turn.
+    const alreadyEnded =
       gameState.turnEndedBy &&
       gameState.turnEndedBy.includes(currentPlayerName);
-    if (isActivePlayer && gameState.started && !hasEndedTurn) {
-      endTurnButton.disabled = false;
-    } else {
-      endTurnButton.disabled = true;
-    }
+    endTurnButton.disabled = alreadyEnded;
   }
 
-  // Update marking options
+  // Update marking options for reference
   if (gameState.diceValues && gameState.started) {
     calculateMarkingOptions(gameState.diceValues, isActivePlayer);
   } else {
@@ -385,34 +320,4 @@ function updateGameUI(newState) {
       optionsContainer.innerHTML = "";
     }
   }
-
-  // If a mark was successful, increment marksChosenThisTurnCount if needed
-  // The server broadcast won't explicitly say who marked, but we can guess:
-  // If boards changed (a new cell crossed), and it's current player's turn, increment local count if that was caused by user's action.
-  // A simpler approach: after each mark from the client, wait for server update and if board changed for you:
-  // Just reset selectedSum to force user to pick sum again for second mark.
-  // If you want perfect tracking, store old boards to detect changes. For simplicity:
-  selectedSum = null;
-  // If a successful mark was made by current player (just trust they followed instructions)
-  // If it's your turn and something got marked this update:
-  // This simple approach: if boards exist and you had selectedSum previously and now cleared it, increment marks chosen.
-  // For perfect logic you'd store old boards before updateGameUI. We'll trust this simplified logic:
-  // If you prefer robust logic, you'd need to compare old and new boards or track response differently.
-}
-
-function endTurn() {
-  const currentPlayerName = document.getElementById("player-name").value;
-  sendAction("endTurn", { playerName: currentPlayerName });
-
-  const endTurnButton = document.querySelector("button[onclick='endTurn()']");
-  if (endTurnButton) {
-    endTurnButton.disabled = true;
-  }
-
-  // Reset local turn variables
-  marksChosenThisTurnCount = 0;
-  firstMarkWasWhiteSum = false;
-  selectedSum = null;
-
-  alert("You have ended your turn!");
 }
