@@ -40,14 +40,21 @@ function startGame() {
 function updateTurnOrder(turnOrder) {
   const turnOrderElement = document.getElementById("turn-order");
   turnOrderElement.innerHTML = "<h3>Turn Order:</h3>";
-  turnOrder.forEach((playerName, index) => {
-    const div = document.createElement("div");
-    div.textContent = `${index + 1}. ${playerName}`;
-    if (index === 0) {
-      div.classList.add("active-player"); // Highlight the active player
-    }
-    turnOrderElement.appendChild(div);
-  });
+
+  if (turnOrder && turnOrder.length > 0) {
+    turnOrder.forEach((playerName, index) => {
+      const div = document.createElement("div");
+      div.textContent = `${index + 1}. ${playerName}`;
+      if (index === 0) {
+        div.classList.add("active-player"); // Highlight the active player
+      }
+      turnOrderElement.appendChild(div);
+    });
+  } else {
+    const noTurnOrderMessage = document.createElement("div");
+    noTurnOrderMessage.textContent = "No turn order yet";
+    turnOrderElement.appendChild(noTurnOrderMessage);
+  }
 }
 
 // Listen for updates from the server
@@ -62,12 +69,13 @@ ws.onmessage = (event) => {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
     currentRoom = data.room;
-    showGameScreen(); // Ensure the game screen is visible
+    // We are no longer hiding or showing screens, just leave everything visible
   } else if (data.type === "newGame") {
     isRoomCreator = true;
     currentRoom = data.room;
     console.log("Player is the room creator: ", isRoomCreator);
-    document.getElementById("start-game").style.display = "block"; // Show Start Game button
+    // Show Start Game button now that you're the room creator
+    document.getElementById("start-game").style.display = "block";
     document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
   } else if (data.type === "error") {
     console.error(data.message);
@@ -75,21 +83,7 @@ ws.onmessage = (event) => {
   }
 };
 
-// UI Helpers
-function showGameScreen() {
-  console.log("Attempting to show game screen...");
-  const joinScreen = document.getElementById("join-game-screen");
-  const gameScreen = document.getElementById("game-screen");
-
-  if (joinScreen) joinScreen.style.display = "none";
-  if (gameScreen) gameScreen.style.display = "block";
-
-  // Generate score rows (game board) if not already generated
-  if (document.getElementById("red-row").children.length === 0) {
-    generateScoreRows();
-  }
-}
-
+// We no longer use showGameScreen() to hide or show screens
 function joinGame() {
   const passcode = document.getElementById("passcode").value;
   const playerName = document.getElementById("player-name").value;
@@ -145,7 +139,6 @@ function generateScoreRows() {
   console.log("Score rows generated");
 }
 
-// Keep only the server-based rollDice function
 function rollDice() {
   const currentPlayerName = document.getElementById("player-name").value;
   if (
@@ -171,7 +164,6 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
   optionsContainer.appendChild(whiteOption);
 
   if (isActivePlayer) {
-    // Create options for the active player: sum of one white die and each colored die
     const whiteAndColorSums = [
       { color: "red", value: diceValues.white1 + diceValues.red },
       { color: "red", value: diceValues.white2 + diceValues.red },
@@ -190,7 +182,6 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
   }
 }
 
-// Helper to create colored square option elements
 function createOptionElement(value, color) {
   const option = document.createElement("div");
   option.className = `dice ${color}`;
@@ -222,7 +213,6 @@ function shuffle(array) {
 function updateGameUI(newState) {
   gameState = newState;
 
-  // Define currentPlayerName at the start
   const currentPlayerName = document.getElementById("player-name").value;
 
   // Update the dice display if diceValues are present
@@ -244,7 +234,6 @@ function updateGameUI(newState) {
       playerElement.classList.add("player");
       playerElement.textContent = player.name;
 
-      // Check if turnEndedBy exists and if player is included
       if (
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(player.name)
@@ -258,25 +247,29 @@ function updateGameUI(newState) {
 
   // Update turn order
   const turnOrderElement = document.getElementById("turn-order");
-  if (gameState.turnOrder) {
+  if (turnOrderElement && gameState.turnOrder) {
     turnOrderElement.innerHTML = `<h3>Turn Order:</h3>`;
-    gameState.turnOrder.forEach((playerName, index) => {
-      const playerElement = document.createElement("div");
-      playerElement.textContent = `${index + 1}. ${playerName}`;
-
-      // Highlight the active player
-      if (index === gameState.activePlayerIndex) {
-        playerElement.classList.add("active-player");
-      }
-
-      turnOrderElement.appendChild(playerElement);
-    });
+    if (gameState.turnOrder.length > 0) {
+      gameState.turnOrder.forEach((pName, index) => {
+        const playerElement = document.createElement("div");
+        playerElement.textContent = `${index + 1}. ${pName}`;
+        if (index === gameState.activePlayerIndex) {
+          playerElement.classList.add("active-player");
+        }
+        turnOrderElement.appendChild(playerElement);
+      });
+    } else {
+      const noTurnOrderMessage = document.createElement("div");
+      noTurnOrderMessage.textContent = "No turn order yet";
+      turnOrderElement.appendChild(noTurnOrderMessage);
+    }
   }
 
   // Update buttons
   const rollDiceButton = document.querySelector("button[onclick='rollDice()']");
   if (rollDiceButton) {
     rollDiceButton.disabled =
+      !gameState.turnOrder ||
       gameState.turnOrder[gameState.activePlayerIndex] !== currentPlayerName;
   }
 
@@ -287,21 +280,20 @@ function updateGameUI(newState) {
         gameState.turnEndedBy.includes(currentPlayerName)) ||
       false;
     if (
+      gameState.turnOrder &&
       gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName &&
       gameState.started &&
       !hasEndedTurn
     ) {
-      endTurnButton.disabled = false; // Enable if the player hasn't ended their turn
+      endTurnButton.disabled = false;
     } else {
-      endTurnButton.disabled = true; // Disable otherwise
+      endTurnButton.disabled = true;
     }
   }
 }
 
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
-
-  // Notify the server that the player has ended their turn
   sendAction("endTurn", { playerName: currentPlayerName });
 
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
