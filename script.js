@@ -3,8 +3,9 @@ const ws = new WebSocket("wss://quixxback.onrender.com");
 let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
-let pendingMarks = [];
+let pendingMarks = []; // {color:string, number:number}
 
+// Join room function
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
@@ -67,14 +68,45 @@ ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
   if (data.type === "gameState") {
+    // If gameState updated after endTurn and no error, then marks are successfully applied
+    // Clear pendingMarks on successful turn update (no error)
     updateGameUI(data);
+
+    // If turn ended successfully (no error) and pendingMarks were applied, clear them
+    // How to detect success? If we ended turn and no error was received:
+    // After receiving gameState following endTurn:
+    // Check if turn changed or marks reflect state. If we trust server to always reflect successful changes:
+    // Just clear pendingMarks every time we get a new gameState since if error occurred, we wouldn't have cleared them.
+    // But after an error, we do get gameState broadcast too. Let's only clear pendingMarks if the active player changed or the turnEndedBy reset.
+    // If the turn advanced (or game ended), pending marks should be cleared.
+    // If no turn ended (no error?), can we rely that after a successful endTurn, turnEndedBy is empty and diceRolledThisTurn = false?
+
+    // Let's do a simple check:
+    if (data.started && !data.gameOver) {
+      // If turn ended successfully, the server sets diceRolledThisTurn=false and turnEndedBy=[]
+      // If previously we ended turn and got no error, that means turn ended successfully.
+      // If turnEndedBy is empty and diceRolledThisTurn is false after we ended turn, let's clear pendingMarks
+      if (
+        data.turnEndedBy &&
+        data.turnEndedBy.length === 0 &&
+        data.diceRolledThisTurn === false
+      ) {
+        // It's likely a new turn started successfully
+        pendingMarks = [];
+        // Also remove pending highlight from UI
+        document
+          .querySelectorAll(".score-cell.pending")
+          .forEach((c) => c.classList.remove("pending"));
+      }
+    }
   } else if (data.type === "error") {
     alert(data.message);
-    // Re-enable End Turn button on error
+    // On error, re-enable End Turn so player can fix marks
     const endTurnButton = document.querySelector("button[onclick='endTurn()']");
     if (endTurnButton) {
       endTurnButton.disabled = false;
     }
+    // Don't clear pendingMarks on error, let player fix them
   } else if (data.type === "roomStatus") {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
@@ -89,8 +121,12 @@ ws.onmessage = (event) => {
 };
 
 function sendAction(type, payload = {}) {
-  const message = { type, ...payload };
-  ws.send(JSON.stringify(message));
+  if (ws.readyState === WebSocket.OPEN) {
+    const message = { type, ...payload };
+    ws.send(JSON.stringify(message));
+  } else {
+    console.warn("WebSocket not open, cannot send message:", type);
+  }
 }
 
 function generateScoreRows() {
@@ -141,6 +177,7 @@ function generatePenaltyBoxes() {
 }
 
 function toggleMarkCell(cell, color, number) {
+  // Just toggle pending locally
   if (!gameState || !gameState.diceRolledThisTurn) {
     alert("You cannot mark before dice are rolled this turn.");
     return;
@@ -177,6 +214,7 @@ function rollDice() {
 
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
+  // Send all pending marks now
   sendAction("endTurn", { playerName: currentPlayerName, marks: pendingMarks });
 
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
@@ -299,7 +337,7 @@ function updateGameUI(newState) {
     });
   }
 
-  // Update marked cells
+  // Update marked cells according to final server state
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -310,23 +348,13 @@ function updateGameUI(newState) {
           cell.classList.remove("crossed", "pending");
           if (boardArray[i]) {
             cell.classList.add("crossed");
+          } else {
+            // If previously pending was set, we remove them now since server defines truth
+            // If marks not applied, cell not crossed
           }
         }
       }
     });
-  }
-
-  // Clear pending marks if turn changed or game ended
-  if (
-    gameState.gameOver ||
-    (gameState.turnOrder &&
-      currentPlayerName &&
-      gameState.turnOrder[gameState.activePlayerIndex] !== currentPlayerName)
-  ) {
-    pendingMarks = [];
-    document
-      .querySelectorAll(".score-cell.pending")
-      .forEach((c) => c.classList.remove("pending"));
   }
 
   // Update player list
