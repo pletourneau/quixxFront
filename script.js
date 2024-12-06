@@ -5,14 +5,28 @@ let isRoomCreator = false;
 let currentRoom = "";
 let pendingMarks = [];
 
+function joinRoom(passcode, playerName) {
+  ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
+}
+
 ws.onopen = () => {
   console.log("WebSocket connection established!");
   generateScoreRows();
   generatePenaltyBoxes();
 };
 
-function joinGame(passcode, playerName) {
-  ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
+function joinGame() {
+  const passcode = document.getElementById("passcode").value;
+  const playerName = document.getElementById("player-name").value;
+
+  if (passcode && playerName) {
+    joinRoom(passcode, playerName);
+    console.log(
+      `Joining room with passcode: ${passcode} as player: ${playerName}`
+    );
+  } else {
+    alert("Enter both a passcode and your name to join the game.");
+  }
 }
 
 function startGame() {
@@ -56,7 +70,7 @@ ws.onmessage = (event) => {
     updateGameUI(data);
   } else if (data.type === "error") {
     alert(data.message);
-    // Re-enable the End Turn button so the player can correct their marks
+    // Re-enable End Turn button on error
     const endTurnButton = document.querySelector("button[onclick='endTurn()']");
     if (endTurnButton) {
       endTurnButton.disabled = false;
@@ -73,20 +87,6 @@ ws.onmessage = (event) => {
     document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
   }
 };
-
-function joinGame() {
-  const passcode = document.getElementById("passcode").value;
-  const playerName = document.getElementById("player-name").value;
-
-  if (passcode && playerName) {
-    joinRoom(passcode, playerName);
-    console.log(
-      `Joining room with passcode: ${passcode} as player: ${playerName}`
-    );
-  } else {
-    alert("Enter both a passcode and your name to join the game.");
-  }
-}
 
 function sendAction(type, payload = {}) {
   const message = { type, ...payload };
@@ -179,7 +179,6 @@ function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
   sendAction("endTurn", { playerName: currentPlayerName, marks: pendingMarks });
 
-  // Disable end turn button optimistically
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     endTurnButton.disabled = true;
@@ -421,7 +420,7 @@ function updateGameUI(newState) {
     }
   }
 
-  // Game over display scoreboard
+  // If game over, show message and scoreboard
   if (gameState.gameOver) {
     document.getElementById("game-over-message").style.display = "block";
     if (gameState.scoreboard) {
