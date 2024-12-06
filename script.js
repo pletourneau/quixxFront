@@ -3,9 +3,6 @@ const ws = new WebSocket("wss://quixxback.onrender.com");
 let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
-
-// New: Keep track of pending marks this turn
-// Format: {color: string, number: number}
 let pendingMarks = [];
 
 ws.onopen = () => {
@@ -14,7 +11,7 @@ ws.onopen = () => {
   generatePenaltyBoxes();
 };
 
-function joinRoom(passcode, playerName) {
+function joinGame(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
 
@@ -59,6 +56,11 @@ ws.onmessage = (event) => {
     updateGameUI(data);
   } else if (data.type === "error") {
     alert(data.message);
+    // Re-enable the End Turn button so the player can correct their marks
+    const endTurnButton = document.querySelector("button[onclick='endTurn()']");
+    if (endTurnButton) {
+      endTurnButton.disabled = false;
+    }
   } else if (data.type === "roomStatus") {
     console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
@@ -138,9 +140,7 @@ function generatePenaltyBoxes() {
   }
 }
 
-// New function: toggleMarkCell locally
 function toggleMarkCell(cell, color, number) {
-  // Check if dice rolled this turn before allowing any marking
   if (!gameState || !gameState.diceRolledThisTurn) {
     alert("You cannot mark before dice are rolled this turn.");
     return;
@@ -150,11 +150,9 @@ function toggleMarkCell(cell, color, number) {
     (m) => m.color === color && m.number === number
   );
   if (index === -1) {
-    // Not marked yet, add to pending
     pendingMarks.push({ color, number });
     cell.classList.add("pending");
   } else {
-    // Already pending, unmark it
     pendingMarks.splice(index, 1);
     cell.classList.remove("pending");
   }
@@ -179,21 +177,14 @@ function rollDice() {
 
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
-
-  // Commit all pending marks now
   sendAction("endTurn", { playerName: currentPlayerName, marks: pendingMarks });
 
-  // If error returned from server, no changes made and we can still fix marks
-  // If success, marks applied and turn ended
-  // Disable end turn button optimistically until server responds
+  // Disable end turn button optimistically
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     endTurnButton.disabled = true;
   }
   alert("Ending turn...");
-
-  // If server rejects marks, it will send error and we can adjust again.
-  // If accepted, turn ends and we clear pending marks
 }
 
 function calculateMarkingOptions(diceValues, isActivePlayer) {
@@ -309,7 +300,7 @@ function updateGameUI(newState) {
     });
   }
 
-  // Update marked cells visually (without pending since we don't store them on server)
+  // Update marked cells
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -334,7 +325,6 @@ function updateGameUI(newState) {
       gameState.turnOrder[gameState.activePlayerIndex] !== currentPlayerName)
   ) {
     pendingMarks = [];
-    // Remove pending highlight
     document
       .querySelectorAll(".score-cell.pending")
       .forEach((c) => c.classList.remove("pending"));
@@ -402,7 +392,7 @@ function updateGameUI(newState) {
     }
   }
 
-  // Update marking options for reference
+  // Update marking options
   if (gameState.diceValues && gameState.started && !gameState.gameOver) {
     calculateMarkingOptions(gameState.diceValues, isActivePlayer);
   } else {
@@ -412,7 +402,7 @@ function updateGameUI(newState) {
     }
   }
 
-  // Update penalty boxes for current player
+  // Update penalties
   if (
     gameState.penalties &&
     gameState.penalties[currentPlayerName] !== undefined
@@ -431,7 +421,7 @@ function updateGameUI(newState) {
     }
   }
 
-  // If game over, show message and scoreboard
+  // Game over display scoreboard
   if (gameState.gameOver) {
     document.getElementById("game-over-message").style.display = "block";
     if (gameState.scoreboard) {
