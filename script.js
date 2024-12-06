@@ -4,6 +4,10 @@ let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
 
+// New: Keep track of pending marks this turn
+// Format: {color: string, number: number}
+let pendingMarks = [];
+
 ws.onopen = () => {
   console.log("WebSocket connection established!");
   generateScoreRows();
@@ -110,7 +114,7 @@ function generateScoreRows() {
         const cell = document.createElement("div");
         cell.textContent = num;
         cell.className = "score-cell";
-        cell.addEventListener("click", () => attemptMarkCell(color, num));
+        cell.addEventListener("click", () => toggleMarkCell(cell, color, num));
         row.appendChild(cell);
       });
 
@@ -134,18 +138,26 @@ function generatePenaltyBoxes() {
   }
 }
 
-function attemptMarkCell(color, number) {
-  const currentPlayerName = document.getElementById("player-name").value;
-  if (!currentPlayerName) {
-    alert("You must enter your name first.");
+// New function: toggleMarkCell locally
+function toggleMarkCell(cell, color, number) {
+  // Check if dice rolled this turn before allowing any marking
+  if (!gameState || !gameState.diceRolledThisTurn) {
+    alert("You cannot mark before dice are rolled this turn.");
     return;
   }
 
-  sendAction("markCell", {
-    playerName: currentPlayerName,
-    color,
-    number,
-  });
+  const index = pendingMarks.findIndex(
+    (m) => m.color === color && m.number === number
+  );
+  if (index === -1) {
+    // Not marked yet, add to pending
+    pendingMarks.push({ color, number });
+    cell.classList.add("pending");
+  } else {
+    // Already pending, unmark it
+    pendingMarks.splice(index, 1);
+    cell.classList.remove("pending");
+  }
 }
 
 function rollDice() {
@@ -167,15 +179,21 @@ function rollDice() {
 
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
-  sendAction("endTurn", { playerName: currentPlayerName });
 
+  // Commit all pending marks now
+  sendAction("endTurn", { playerName: currentPlayerName, marks: pendingMarks });
+
+  // If error returned from server, no changes made and we can still fix marks
+  // If success, marks applied and turn ended
+  // Disable end turn button optimistically until server responds
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     endTurnButton.disabled = true;
   }
-  alert(
-    "You have ended your turn! Waiting for all players to end their turn..."
-  );
+  alert("Ending turn...");
+
+  // If server rejects marks, it will send error and we can adjust again.
+  // If accepted, turn ends and we clear pending marks
 }
 
 function calculateMarkingOptions(diceValues, isActivePlayer) {
@@ -291,7 +309,7 @@ function updateGameUI(newState) {
     });
   }
 
-  // Update marked cells
+  // Update marked cells visually (without pending since we don't store them on server)
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -299,14 +317,27 @@ function updateGameUI(newState) {
         const boardArray = gameState.boards[currentPlayerName][color];
         for (let i = 0; i < boardArray.length; i++) {
           const cell = row.children[i];
+          cell.classList.remove("crossed", "pending");
           if (boardArray[i]) {
             cell.classList.add("crossed");
-          } else {
-            cell.classList.remove("crossed");
           }
         }
       }
     });
+  }
+
+  // Clear pending marks if turn changed or game ended
+  if (
+    gameState.gameOver ||
+    (gameState.turnOrder &&
+      currentPlayerName &&
+      gameState.turnOrder[gameState.activePlayerIndex] !== currentPlayerName)
+  ) {
+    pendingMarks = [];
+    // Remove pending highlight
+    document
+      .querySelectorAll(".score-cell.pending")
+      .forEach((c) => c.classList.remove("pending"));
   }
 
   // Update player list
@@ -352,24 +383,23 @@ function updateGameUI(newState) {
   // Update buttons
   const rollDiceButton = document.querySelector("button[onclick='rollDice()']");
   if (rollDiceButton) {
-    rollDiceButton.disabled =
-      !isActivePlayer || gameState.diceRolledThisTurn === undefined
-        ? true
-        : !gameState.diceRolledThisTurn && !isActivePlayer;
-    if (isActivePlayer && !gameState.diceRolledThisTurn) {
-      rollDiceButton.disabled = false;
-    }
-    if (!isActivePlayer) rollDiceButton.disabled = true;
-    if (gameState.diceRolledThisTurn && !isActivePlayer)
+    if (!gameState.started || gameState.gameOver) {
       rollDiceButton.disabled = true;
+    } else {
+      rollDiceButton.disabled = !isActivePlayer || gameState.diceRolledThisTurn;
+    }
   }
 
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
-    const alreadyEnded =
-      gameState.turnEndedBy &&
-      gameState.turnEndedBy.includes(currentPlayerName);
-    endTurnButton.disabled = alreadyEnded;
+    if (!gameState.started || gameState.gameOver) {
+      endTurnButton.disabled = true;
+    } else {
+      const alreadyEnded =
+        gameState.turnEndedBy &&
+        gameState.turnEndedBy.includes(currentPlayerName);
+      endTurnButton.disabled = alreadyEnded;
+    }
   }
 
   // Update marking options for reference
