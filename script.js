@@ -294,6 +294,16 @@ function updateGameUI(newState) {
       const diceElement = document.getElementById(dice);
       if (diceElement) diceElement.textContent = value;
     });
+  } else {
+    // No dice rolled this turn yet or turn just ended.
+    // Clear dice display: revert to initial state (e.g. show 🎲 or blank)
+    const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
+    diceIds.forEach((dice) => {
+      const diceElement = document.getElementById(dice);
+      if (diceElement) {
+        diceElement.textContent = "🎲"; // show a placeholder die icon
+      }
+    });
   }
 
   // Update marked cells according to server state
@@ -356,6 +366,13 @@ function updateGameUI(newState) {
   // Update buttons
   const rollDiceButton = document.querySelector("button[onclick='rollDice()']");
   if (rollDiceButton) {
+    // Roll dice button only active if:
+    // - game started
+    // - not game over
+    // - isActivePlayer == true
+    // - diceRolledThisTurn == false
+    // So if diceValues is null (no dice rolled), and player is active, rollDice enabled.
+    // If not active or diceRolled, disabled.
     if (!gameState.started || gameState.gameOver) {
       rollDiceButton.disabled = true;
     } else {
@@ -376,13 +393,12 @@ function updateGameUI(newState) {
   }
 
   // Update marking options
+  const optionsContainer = document.getElementById("marking-options-list");
   if (gameState.diceValues && gameState.started && !gameState.gameOver) {
     calculateMarkingOptions(gameState.diceValues, isActivePlayer);
-  } else {
-    const optionsContainer = document.getElementById("marking-options-list");
-    if (optionsContainer) {
-      optionsContainer.innerHTML = "";
-    }
+  } else if (optionsContainer) {
+    // If no diceValues or game not started or game over, clear options
+    optionsContainer.innerHTML = "";
   }
 
   // Update penalties
