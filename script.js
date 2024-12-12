@@ -183,6 +183,11 @@ function endTurn() {
   alert("Ending turn...");
 }
 
+function resetTurn() {
+  const currentPlayerName = document.getElementById("player-name").value;
+  sendAction("resetTurnForPlayer", { playerName: currentPlayerName });
+}
+
 function calculateMarkingOptions(diceValues, isActivePlayer) {
   const optionsContainer = document.getElementById("marking-options-list");
   if (!optionsContainer) return;
@@ -296,12 +301,12 @@ function updateGameUI(newState) {
     });
   } else {
     // No dice rolled this turn yet or turn just ended.
-    // Clear dice display: revert to initial state (e.g. show 🎲 or blank)
+    // Clear dice display: revert to initial state (e.g. show 🎲)
     const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
     diceIds.forEach((dice) => {
       const diceElement = document.getElementById(dice);
       if (diceElement) {
-        diceElement.textContent = "🎲"; // show a placeholder die icon
+        diceElement.textContent = "🎲"; // placeholder
       }
     });
   }
@@ -366,13 +371,6 @@ function updateGameUI(newState) {
   // Update buttons
   const rollDiceButton = document.querySelector("button[onclick='rollDice()']");
   if (rollDiceButton) {
-    // Roll dice button only active if:
-    // - game started
-    // - not game over
-    // - isActivePlayer == true
-    // - diceRolledThisTurn == false
-    // So if diceValues is null (no dice rolled), and player is active, rollDice enabled.
-    // If not active or diceRolled, disabled.
     if (!gameState.started || gameState.gameOver) {
       rollDiceButton.disabled = true;
     } else {
@@ -389,6 +387,22 @@ function updateGameUI(newState) {
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(currentPlayerName);
       endTurnButton.disabled = alreadyEnded;
+    }
+  }
+
+  const resetTurnButton = document.querySelector(
+    "button[onclick='resetTurn()']"
+  );
+  if (resetTurnButton) {
+    // Allow reset only if turn not ended and turn is started and not game over
+    // and dice have been rolled this turn (because if no dice rolled, no need to reset)
+    if (!gameState.started || gameState.gameOver) {
+      resetTurnButton.disabled = true;
+    } else {
+      const alreadyEnded =
+        gameState.turnEndedBy &&
+        gameState.turnEndedBy.includes(currentPlayerName);
+      resetTurnButton.disabled = alreadyEnded || !gameState.diceRolledThisTurn;
     }
   }
 
