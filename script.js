@@ -71,7 +71,6 @@ ws.onmessage = (event) => {
     updateGameUI(data);
   } else if (data.type === "error") {
     alert(data.message);
-    // Re-enable End Turn if needed
     const endTurnButton = document.querySelector("button[onclick='endTurn()']");
     if (endTurnButton) {
       endTurnButton.disabled = false;
@@ -179,7 +178,7 @@ function endTurn() {
   if (endTurnButton) {
     endTurnButton.disabled = true;
   }
-  alert("Ending turn...");
+  // Removed the alert("Ending turn...") here
 }
 
 function resetTurn() {
