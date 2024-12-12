@@ -106,6 +106,10 @@
         margin-top: 20px;
         font-size: 1rem;
       }
+      .enabled-roll {
+        background-color: green !important;
+        color: white !important;
+      }
 
       .player-list {
         margin: 20px 0;
@@ -203,7 +207,7 @@
         <ul id="marking-options-list"></ul>
       </div>
 
-      <button onclick="rollDice()">Roll Dice</button>
+      <button onclick="rollDice()" id="roll-dice-btn">Roll Dice</button>
       <button onclick="endTurn()">End Turn</button>
       <button onclick="resetTurn()">Reset Turn</button>
 

@@ -145,7 +145,6 @@ function generatePenaltyBoxes() {
   }
 }
 
-// On cell click, immediately send markCell action
 function attemptMarkCell(cell, color, number) {
   if (!gameState || !gameState.diceRolledThisTurn) {
     alert("You cannot mark before dice are rolled this turn.");
@@ -300,18 +299,16 @@ function updateGameUI(newState) {
       if (diceElement) diceElement.textContent = value;
     });
   } else {
-    // No dice rolled this turn yet or turn just ended.
-    // Clear dice display: revert to initial state (e.g. show 🎲)
     const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
     diceIds.forEach((dice) => {
       const diceElement = document.getElementById(dice);
       if (diceElement) {
-        diceElement.textContent = "🎲"; // placeholder
+        diceElement.textContent = "🎲";
       }
     });
   }
 
-  // Update marked cells according to server state
+  // Update marked cells
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -369,12 +366,19 @@ function updateGameUI(newState) {
   }
 
   // Update buttons
-  const rollDiceButton = document.querySelector("button[onclick='rollDice()']");
+  const rollDiceButton = document.querySelector("#roll-dice-btn");
   if (rollDiceButton) {
     if (!gameState.started || gameState.gameOver) {
       rollDiceButton.disabled = true;
+      rollDiceButton.classList.remove("enabled-roll");
     } else {
-      rollDiceButton.disabled = !isActivePlayer || gameState.diceRolledThisTurn;
+      const canRoll = isActivePlayer && !gameState.diceRolledThisTurn;
+      rollDiceButton.disabled = !canRoll;
+      if (canRoll) {
+        rollDiceButton.classList.add("enabled-roll");
+      } else {
+        rollDiceButton.classList.remove("enabled-roll");
+      }
     }
   }
 
@@ -394,8 +398,6 @@ function updateGameUI(newState) {
     "button[onclick='resetTurn()']"
   );
   if (resetTurnButton) {
-    // Allow reset only if turn not ended and turn is started and not game over
-    // and dice have been rolled this turn (because if no dice rolled, no need to reset)
     if (!gameState.started || gameState.gameOver) {
       resetTurnButton.disabled = true;
     } else {
@@ -411,7 +413,6 @@ function updateGameUI(newState) {
   if (gameState.diceValues && gameState.started && !gameState.gameOver) {
     calculateMarkingOptions(gameState.diceValues, isActivePlayer);
   } else if (optionsContainer) {
-    // If no diceValues or game not started or game over, clear options
     optionsContainer.innerHTML = "";
   }
 
