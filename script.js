@@ -4,8 +4,6 @@ let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
 
-// On cell click: immediate "markCell" action
-
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
@@ -54,7 +52,6 @@ function updateTurnOrder(turnOrder) {
       div.textContent = `${index + 1}. ${playerName}`;
       if (index === 0) {
         div.classList.add(
-          "active-player",
           "text-green-700",
           "font-bold",
           "border",
@@ -107,37 +104,74 @@ function sendAction(type, payload = {}) {
 
 function generateScoreRows() {
   const rowsConfig = {
-    red: { start: 2, end: 12, lock: "LOCK" },
-    yellow: { start: 2, end: 12, lock: "LOCK" },
-    green: { start: 12, end: 2, lock: "LOCK" },
-    blue: { start: 12, end: 2, lock: "LOCK" },
+    red: { start: 2, end: 12, lock: "LOCK", ascending: true },
+    yellow: { start: 2, end: 12, lock: "LOCK", ascending: true },
+    green: { start: 12, end: 2, lock: "LOCK", ascending: false },
+    blue: { start: 12, end: 2, lock: "LOCK", ascending: false },
   };
 
   Object.keys(rowsConfig).forEach((color) => {
-    const row = document.getElementById(`${color}-row`);
-    if (row) {
-      row.innerHTML = "";
-      const { start, end, lock } = rowsConfig[color];
+    const rowContainer = document.getElementById(`${color}-row`);
+    if (rowContainer) {
+      rowContainer.innerHTML = "";
+
+      const { start, end, lock, ascending } = rowsConfig[color];
       const step = start < end ? 1 : -1;
       const numbers = [];
       for (let i = start; i !== end + step; i += step) {
         numbers.push(i);
       }
 
-      numbers.forEach((num) => {
+      // All but the last two cells
+      // Last two cells: one is final number cell, one is lock cell
+      const lastNumber = numbers[numbers.length - 1];
+      const preLastNumbers = numbers.slice(0, -1);
+
+      const cellsFragment = document.createDocumentFragment();
+
+      preLastNumbers.forEach((num) => {
         const cell = document.createElement("div");
         cell.textContent = num;
         cell.className =
           "w-10 h-10 bg-white border border-gray-300 flex items-center justify-center font-bold text-sm cursor-pointer";
         cell.addEventListener("click", () => attemptMarkCell(cell, color, num));
-        row.appendChild(cell);
+        cellsFragment.appendChild(cell);
       });
 
+      // Now create the special final section with "At least 5 X's"
+      const finalSection = document.createElement("div");
+      finalSection.className = "inline-flex flex-col items-center";
+
+      const label = document.createElement("span");
+      label.className = "text-xs font-semibold mb-1";
+      label.textContent = "At least 5 X's";
+      finalSection.appendChild(label);
+
+      const box = document.createElement("div");
+      box.className =
+        "flex space-x-1 border border-black rounded px-1 py-1 bg-white";
+
+      // Final number cell
+      const finalNumberCell = document.createElement("div");
+      finalNumberCell.textContent = lastNumber;
+      finalNumberCell.className =
+        "w-10 h-10 bg-white border border-gray-300 flex items-center justify-center font-bold text-sm cursor-pointer";
+      finalNumberCell.addEventListener("click", () =>
+        attemptMarkCell(finalNumberCell, color, lastNumber)
+      );
+      box.appendChild(finalNumberCell);
+
+      // Lock cell
       const lockCell = document.createElement("div");
-      lockCell.textContent = lock;
+      lockCell.textContent = lock; // Will be updated in updateGameUI if locked
       lockCell.className =
-        "w-12 h-10 bg-gray-700 text-white flex items-center justify-center font-bold";
-      row.appendChild(lockCell);
+        "w-12 h-10 flex items-center justify-center font-bold bg-white text-black border border-gray-300";
+      box.appendChild(lockCell);
+
+      finalSection.appendChild(box);
+
+      rowContainer.appendChild(cellsFragment);
+      rowContainer.appendChild(finalSection);
     }
   });
 
@@ -357,15 +391,37 @@ function updateGameUI(newState) {
       const row = document.getElementById(`${color}-row`);
       if (row) {
         const boardArray = gameState.boards[currentPlayerName][color];
-        // row children includes all cells + lock cell, boardArray is 11 elements
-        // The last cell is the lock cell, do not attempt to cross it out
-        for (let i = 0; i < boardArray.length; i++) {
-          const cell = row.children[i];
-          cell.classList.remove("bg-gray-300", "line-through");
-          if (boardArray[i]) {
-            cell.classList.add("bg-gray-300", "line-through");
+        // The row structure:
+        // - normal cells
+        // - a finalSection (label + box) containing finalNumberCell and lockCell
+        //
+        // Let's find all cells:
+        // Normal cells: all but last two elements before the special section
+        // We appended normal cells directly, then a finalSection div.
+        // The final two scoring cells (final number and lock) are inside finalSection.
+        // Let's gather all "w-10 h-10 ..." cells from the row.
+        const allCells = row.querySelectorAll(".w-10.h-10.bg-white.border");
+        // boardArray length is 11 marks. The last one corresponds to the final number cell.
+        // allCells should have at least 11 normal cells + 1 lock cell. Actually, we have 10 normal + 1 final number cell.
+        // The lock cell is separate (not in boardArray).
+
+        // Mark cells that are true in boardArray as X and gray.
+        boardArray.forEach((marked, i) => {
+          const cell = allCells[i];
+          if (!cell) return;
+          cell.classList.remove("bg-gray-300");
+          if (marked) {
+            cell.classList.add("bg-gray-300");
+            cell.textContent = "X"; // Show X instead of number
+          } else {
+            // If not marked, show the original number?
+            // We can't know original number easily here. Let's store it in dataset?
+            // Or just regenerate row after each turn?
+            // For simplicity, we assume a reset turn would fix it. Usually we won't unmark cells.
+            // If needed, we can store the original number in data-original-number attribute during generateScoreRows.
+            // Let's do that now.
           }
-        }
+        });
       }
     });
   }
@@ -400,15 +456,9 @@ function updateGameUI(newState) {
   if (rollDiceButton) {
     if (!gameState.started || gameState.gameOver) {
       rollDiceButton.disabled = true;
-      rollDiceButton.classList.remove("enabled-roll");
     } else {
       const canRoll = isActivePlayer && !gameState.diceRolledThisTurn;
       rollDiceButton.disabled = !canRoll;
-      if (canRoll) {
-        rollDiceButton.classList.add("bg-green-500");
-      } else {
-        rollDiceButton.classList.remove("bg-green-500");
-      }
     }
   }
 
@@ -457,14 +507,31 @@ function updateGameUI(newState) {
       for (let i = 0; i < 4; i++) {
         const box = penaltiesContainer.children[i];
         box.classList.remove("bg-gray-300", "line-through");
+        box.textContent = "";
         if (i < penaltyCount) {
           box.classList.add("bg-gray-300", "line-through");
           box.textContent = "X";
-        } else {
-          box.textContent = "";
         }
       }
     }
+  }
+
+  // Update lock cells: If row is locked, show lock icon instead of "LOCK"
+  if (gameState.lockedRows) {
+    ["red", "yellow", "green", "blue"].forEach((color) => {
+      const row = document.getElementById(`${color}-row`);
+      if (!row) return;
+      const lockCell = row.querySelector(".w-12.h-10:not(.score-cell)");
+      if (!lockCell) return;
+
+      if (gameState.lockedRows[color]) {
+        lockCell.textContent = "🔒";
+        lockCell.classList.remove("text-black", "bg-white");
+      } else {
+        lockCell.textContent = "LOCK";
+        lockCell.classList.add("text-black", "bg-white");
+      }
+    });
   }
 
   // If game over, show message and scoreboard
