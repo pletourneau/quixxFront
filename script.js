@@ -35,7 +35,6 @@ function startGame() {
     const players = Array.from(
       document.querySelectorAll("#player-info .player")
     ).map((el) => el.textContent);
-
     shuffle(players);
     sendAction("startGame", { turnOrder: players });
     updateTurnOrder(players);
@@ -46,14 +45,23 @@ function startGame() {
 
 function updateTurnOrder(turnOrder) {
   const turnOrderElement = document.getElementById("turn-order");
-  turnOrderElement.innerHTML = "<h3>Turn Order:</h3>";
+  turnOrderElement.innerHTML =
+    "<h3 class='text-xl font-semibold mb-2'>Turn Order:</h3>";
 
   if (turnOrder && turnOrder.length > 0) {
     turnOrder.forEach((playerName, index) => {
       const div = document.createElement("div");
       div.textContent = `${index + 1}. ${playerName}`;
       if (index === 0) {
-        div.classList.add("active-player");
+        div.classList.add(
+          "active-player",
+          "text-green-700",
+          "font-bold",
+          "border",
+          "border-black",
+          "rounded",
+          "p-1"
+        );
       }
       turnOrderElement.appendChild(div);
     });
@@ -119,14 +127,16 @@ function generateScoreRows() {
       numbers.forEach((num) => {
         const cell = document.createElement("div");
         cell.textContent = num;
-        cell.className = "score-cell";
+        cell.className =
+          "w-10 h-10 bg-white border border-gray-300 flex items-center justify-center font-bold text-sm cursor-pointer";
         cell.addEventListener("click", () => attemptMarkCell(cell, color, num));
         row.appendChild(cell);
       });
 
       const lockCell = document.createElement("div");
       lockCell.textContent = lock;
-      lockCell.className = "score-cell final-cell";
+      lockCell.className =
+        "w-12 h-10 bg-gray-700 text-white flex items-center justify-center font-bold";
       row.appendChild(lockCell);
     }
   });
@@ -139,7 +149,8 @@ function generatePenaltyBoxes() {
   penaltiesContainer.innerHTML = "";
   for (let i = 0; i < 4; i++) {
     const box = document.createElement("div");
-    box.className = "penalty-box";
+    box.className =
+      "w-10 h-10 border-2 border-black flex items-center justify-center font-bold bg-white";
     penaltiesContainer.appendChild(box);
   }
 }
@@ -178,7 +189,6 @@ function endTurn() {
   if (endTurnButton) {
     endTurnButton.disabled = true;
   }
-  // Removed the alert("Ending turn...") here
 }
 
 function resetTurn() {
@@ -194,7 +204,11 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
 
   const whiteSum = diceValues.white1 + diceValues.white2;
 
-  const whiteOption = createOptionElement(whiteSum, "white");
+  const whiteOption = createOptionElement(
+    whiteSum,
+    "white",
+    "bg-white text-black border border-gray-300"
+  );
   optionsContainer.appendChild(whiteOption);
 
   if (isActivePlayer) {
@@ -225,18 +239,35 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
     }
 
     whiteAndColorSums.forEach(({ color, value }) => {
-      const colorOption = createOptionElement(value, color);
+      let bgClass = "";
+      switch (color) {
+        case "red":
+          bgClass = "bg-red-500 text-white";
+          break;
+        case "yellow":
+          bgClass = "bg-yellow-300 text-black";
+          break;
+        case "green":
+          bgClass = "bg-green-500 text-white";
+          break;
+        case "blue":
+          bgClass = "bg-blue-500 text-white";
+          break;
+      }
+      const colorOption = createOptionElement(
+        value,
+        color,
+        `${bgClass} border border-gray-300`
+      );
       optionsContainer.appendChild(colorOption);
     });
   }
 }
 
-function createOptionElement(value, color) {
+function createOptionElement(value, color, additionalClasses = "") {
   const option = document.createElement("div");
-  option.className = `dice ${color}`;
+  option.className = `w-12 h-12 flex items-center justify-center text-lg font-bold rounded cursor-pointer ${additionalClasses}`;
   option.textContent = value;
-  option.style.margin = "5px";
-  option.style.display = "inline-block";
   return option;
 }
 
@@ -249,13 +280,16 @@ function shuffle(array) {
 
 function displayScoreboard(scoreboard) {
   const scoreboardDiv = document.getElementById("scoreboard");
-  scoreboardDiv.innerHTML = "<h3>Final Scores:</h3>";
+  scoreboardDiv.innerHTML =
+    "<h3 class='text-xl font-bold mb-2'>Final Scores:</h3>";
   const table = document.createElement("table");
+  table.className = "mx-auto border-collapse border border-black";
   const header = document.createElement("tr");
   ["Player", "Red", "Yellow", "Green", "Blue", "Penalties", "Total"].forEach(
     (h) => {
       const th = document.createElement("th");
       th.textContent = h;
+      th.className = "border border-black px-2 py-1";
       header.appendChild(th);
     }
   );
@@ -274,17 +308,27 @@ function displayScoreboard(scoreboard) {
     ].forEach((val) => {
       const td = document.createElement("td");
       td.textContent = val;
+      td.className = "border border-black px-2 py-1";
       row.appendChild(td);
     });
     table.appendChild(row);
   });
 
   scoreboardDiv.appendChild(table);
-  scoreboardDiv.style.display = "block";
+  scoreboardDiv.classList.remove("hidden");
 }
 
 function updateGameUI(newState) {
   gameState = newState;
+
+  const joinGameScreen = document.getElementById("join-game-screen");
+  const gameScreen = document.getElementById("game-screen");
+
+  // Toggle screens based on game state
+  if (gameState.started) {
+    joinGameScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+  }
 
   const currentPlayerName = document.getElementById("player-name").value;
   const isActivePlayer =
@@ -313,11 +357,13 @@ function updateGameUI(newState) {
       const row = document.getElementById(`${color}-row`);
       if (row) {
         const boardArray = gameState.boards[currentPlayerName][color];
+        // row children includes all cells + lock cell, boardArray is 11 elements
+        // The last cell is the lock cell, do not attempt to cross it out
         for (let i = 0; i < boardArray.length; i++) {
           const cell = row.children[i];
-          cell.classList.remove("crossed");
+          cell.classList.remove("bg-gray-300", "line-through");
           if (boardArray[i]) {
-            cell.classList.add("crossed");
+            cell.classList.add("bg-gray-300", "line-through");
           }
         }
       }
@@ -327,7 +373,7 @@ function updateGameUI(newState) {
   // Update player list
   const playerInfo = document.getElementById("player-info");
   if (gameState.players) {
-    playerInfo.innerHTML = `<h3>Players in the Room:</h3>`;
+    playerInfo.innerHTML = `<h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>`;
     gameState.players.forEach((player) => {
       const playerElement = document.createElement("div");
       playerElement.classList.add("player");
@@ -337,7 +383,7 @@ function updateGameUI(newState) {
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(player.name)
       ) {
-        playerElement.style.textDecoration = "line-through";
+        playerElement.classList.add("line-through");
       }
 
       playerInfo.appendChild(playerElement);
@@ -345,23 +391,8 @@ function updateGameUI(newState) {
   }
 
   // Update turn order
-  const turnOrderElement = document.getElementById("turn-order");
-  if (turnOrderElement && gameState.turnOrder) {
-    turnOrderElement.innerHTML = `<h3>Turn Order:</h3>`;
-    if (gameState.turnOrder.length > 0) {
-      gameState.turnOrder.forEach((pName, index) => {
-        const playerElement = document.createElement("div");
-        playerElement.textContent = `${index + 1}. ${pName}`;
-        if (index === gameState.activePlayerIndex) {
-          playerElement.classList.add("active-player");
-        }
-        turnOrderElement.appendChild(playerElement);
-      });
-    } else {
-      const noTurnOrderMessage = document.createElement("div");
-      noTurnOrderMessage.textContent = "No turn order yet";
-      turnOrderElement.appendChild(noTurnOrderMessage);
-    }
+  if (gameState.turnOrder) {
+    updateTurnOrder(gameState.turnOrder);
   }
 
   // Update buttons
@@ -374,9 +405,9 @@ function updateGameUI(newState) {
       const canRoll = isActivePlayer && !gameState.diceRolledThisTurn;
       rollDiceButton.disabled = !canRoll;
       if (canRoll) {
-        rollDiceButton.classList.add("enabled-roll");
+        rollDiceButton.classList.add("bg-green-500");
       } else {
-        rollDiceButton.classList.remove("enabled-roll");
+        rollDiceButton.classList.remove("bg-green-500");
       }
     }
   }
@@ -425,20 +456,25 @@ function updateGameUI(newState) {
     if (penaltiesContainer) {
       for (let i = 0; i < 4; i++) {
         const box = penaltiesContainer.children[i];
+        box.classList.remove("bg-gray-300", "line-through");
         if (i < penaltyCount) {
-          box.classList.add("crossed");
+          box.classList.add("bg-gray-300", "line-through");
+          box.textContent = "X";
         } else {
-          box.classList.remove("crossed");
+          box.textContent = "";
         }
       }
     }
   }
 
   // If game over, show message and scoreboard
+  const gameOverMessage = document.getElementById("game-over-message");
   if (gameState.gameOver) {
-    document.getElementById("game-over-message").style.display = "block";
+    if (gameOverMessage) gameOverMessage.classList.remove("hidden");
     if (gameState.scoreboard) {
       displayScoreboard(gameState.scoreboard);
     }
+  } else {
+    if (gameOverMessage) gameOverMessage.classList.add("hidden");
   }
 }

@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Qwixx Online - Dice Game</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS via CDN -->
     <link
       href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.4/dist/tailwind.min.css"
       rel="stylesheet"
     />
-    <!-- If you have a custom build of Tailwind, include output.css -->
+    <!-- If you're using a local Tailwind build, include it here -->
     <link href="output.css" rel="stylesheet" />
   </head>
   <body
@@ -75,42 +75,39 @@
       </div>
 
       <!-- Dice Container -->
-      <div
-        class="dice-container flex justify-center gap-4 mt-4"
-        id="dice-container"
-      >
+      <div class="flex justify-center gap-4 mt-4" id="dice-container">
         <div
-          class="dice white w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
+          class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
           id="white1"
         >
           🎲
         </div>
         <div
-          class="dice white w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
+          class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
           id="white2"
         >
           🎲
         </div>
         <div
-          class="dice red w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-red-500 text-white"
+          class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-red-500 text-white"
           id="red"
         >
           🎲
         </div>
         <div
-          class="dice yellow w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-yellow-300 text-black"
+          class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-yellow-300 text-black"
           id="yellow"
         >
           🎲
         </div>
         <div
-          class="dice green w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-green-500 text-white"
+          class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-green-500 text-white"
           id="green"
         >
           🎲
         </div>
         <div
-          class="dice blue w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-blue-500 text-white"
+          class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-blue-500 text-white"
           id="blue"
         >
           🎲
