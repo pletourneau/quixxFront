@@ -151,7 +151,6 @@ function rollDice() {
     gameState.turnOrder &&
     gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName
   ) {
-    // Always allow the active player to roll dice if game started and not over
     if (!gameState.started || gameState.gameOver) {
       return;
     }
