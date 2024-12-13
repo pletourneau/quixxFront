@@ -4,228 +4,194 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Qwixx Online - Dice Game</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        padding: 20px;
-      }
-      .active-player {
-        color: green;
-        font-weight: bold;
-        border: 2px solid #000;
-        padding: 5px;
-        border-radius: 4px;
-      }
-      .dice-container {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        margin: 20px 0;
-      }
-      .dice {
-        font-size: 2rem;
-        display: inline-block;
-        width: 50px;
-        height: 50px;
-        line-height: 50px;
-        text-align: center;
-        margin: 10px;
-        border: 2px solid #ccc;
-        border-radius: 8px;
-        font-weight: bold;
-        color: white;
-      }
-      .dice.white {
-        background-color: white;
-        color: black;
-      }
-      .dice.red {
-        background-color: red;
-      }
-      .dice.yellow {
-        background-color: yellow;
-        color: black;
-      }
-      .dice.green {
-        background-color: green;
-      }
-      .dice.blue {
-        background-color: blue;
-      }
-
-      .score-sheet {
-        margin-top: 30px;
-      }
-      .score-row {
-        display: flex;
-        justify-content: center;
-        margin: 10px 0;
-        padding: 5px 0;
-        border-radius: 8px;
-      }
-      .score-row.red {
-        background-color: red;
-        color: white;
-      }
-      .score-row.yellow {
-        background-color: yellow;
-        color: black;
-      }
-      .score-row.green {
-        background-color: green;
-        color: white;
-      }
-      .score-row.blue {
-        background-color: blue;
-        color: white;
-      }
-
-      .score-cell {
-        width: 40px;
-        height: 40px;
-        border: 1px solid #ccc;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-      }
-      .score-cell.crossed {
-        background-color: #ccc;
-        text-decoration: line-through;
-      }
-      .final-cell {
-        font-weight: bold;
-        background-color: #999;
-        color: white;
-        cursor: default;
-      }
-
-      button {
-        padding: 10px 20px;
-        margin-top: 20px;
-        font-size: 1rem;
-      }
-      .enabled-roll {
-        background-color: green !important;
-        color: white !important;
-      }
-
-      .player-list {
-        margin: 20px 0;
-        font-size: 1.2rem;
-        text-align: left;
-      }
-      .player-list h3 {
-        font-size: 1.5rem;
-        margin-bottom: 10px;
-      }
-
-      .penalties-section {
-        margin-top: 20px;
-      }
-      .penalty-boxes {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-      }
-      .penalty-box {
-        width: 40px;
-        height: 40px;
-        border: 2px solid #000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        background-color: white;
-      }
-      .penalty-box.crossed {
-        background-color: #ccc;
-        text-decoration: line-through;
-      }
-
-      #game-over-message {
-        font-size: 2rem;
-        color: red;
-        margin-top: 20px;
-        display: none;
-      }
-
-      #scoreboard {
-        margin-top: 20px;
-        display: none;
-      }
-      #scoreboard table {
-        margin: 0 auto;
-        border-collapse: collapse;
-      }
-      #scoreboard th,
-      #scoreboard td {
-        border: 1px solid #000;
-        padding: 5px 10px;
-      }
-    </style>
+    <!-- Tailwind CSS CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.4/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <!-- If you have a custom build of Tailwind, include output.css -->
+    <link href="output.css" rel="stylesheet" />
   </head>
-  <body>
-    <h1>Qwixx Online - Dice Game</h1>
+  <body
+    class="bg-gray-200 min-h-screen p-6 flex flex-col items-center text-center font-sans"
+  >
+    <h1 class="text-3xl font-bold mb-6">Qwixx Online - Dice Game</h1>
 
-    <div id="join-game-screen">
-      <h2>Join a Game</h2>
-      <input type="text" id="player-name" placeholder="Enter your name" />
-      <input type="text" id="passcode" placeholder="Enter game passcode" />
-      <button onclick="joinGame()">Join Game</button>
-      <div id="room-name"></div>
-      <div id="player-info" class="player-list">
-        <h3>Players in the Room:</h3>
+    <!-- Join Game Screen -->
+    <div
+      id="join-game-screen"
+      class="bg-white rounded shadow p-4 max-w-md w-full space-y-4 mb-8"
+    >
+      <h2 class="text-2xl font-semibold">Join a Game</h2>
+      <div class="flex flex-col space-y-2">
+        <input
+          type="text"
+          id="player-name"
+          placeholder="Enter your name"
+          class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+        <input
+          type="text"
+          id="passcode"
+          placeholder="Enter game passcode"
+          class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <button
+        onclick="joinGame()"
+        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
+      >
+        Join Game
+      </button>
+      <div id="room-name" class="text-gray-700"></div>
+      <div id="player-info" class="player-list text-left mt-4">
+        <h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>
       </div>
       <div>
-        <button id="start-game" style="display: none" onclick="startGame()">
+        <button
+          id="start-game"
+          style="display: none"
+          onclick="startGame()"
+          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+        >
           Start Game
         </button>
       </div>
     </div>
 
-    <div id="game-screen">
-      <h2>Game Screen</h2>
+    <!-- Game Screen -->
+    <div
+      id="game-screen"
+      class="w-full max-w-4xl bg-white rounded shadow p-4 space-y-6 hidden"
+    >
+      <h2 class="text-2xl font-bold text-center">Game Screen</h2>
 
-      <div id="turn-order" class="player-list">
-        <h3>Turn Order:</h3>
-        <div id="no-turn-order-message">No turn order yet</div>
+      <!-- Turn Order -->
+      <div id="turn-order" class="player-list text-left">
+        <h3 class="text-xl font-semibold mb-2">Turn Order:</h3>
+        <div id="no-turn-order-message" class="text-gray-700">
+          No turn order yet
+        </div>
       </div>
 
-      <div class="dice-container" id="dice-container">
-        <div class="dice white" id="white1">🎲</div>
-        <div class="dice white" id="white2">🎲</div>
-        <div class="dice red" id="red">🎲</div>
-        <div class="dice yellow" id="yellow">🎲</div>
-        <div class="dice green" id="green">🎲</div>
-        <div class="dice blue" id="blue">🎲</div>
+      <!-- Dice Container -->
+      <div
+        class="dice-container flex justify-center gap-4 mt-4"
+        id="dice-container"
+      >
+        <div
+          class="dice white w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
+          id="white1"
+        >
+          🎲
+        </div>
+        <div
+          class="dice white w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
+          id="white2"
+        >
+          🎲
+        </div>
+        <div
+          class="dice red w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-red-500 text-white"
+          id="red"
+        >
+          🎲
+        </div>
+        <div
+          class="dice yellow w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-yellow-300 text-black"
+          id="yellow"
+        >
+          🎲
+        </div>
+        <div
+          class="dice green w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-green-500 text-white"
+          id="green"
+        >
+          🎲
+        </div>
+        <div
+          class="dice blue w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-blue-500 text-white"
+          id="blue"
+        >
+          🎲
+        </div>
       </div>
 
-      <div id="marking-options" style="margin-top: 20px">
-        <h3>Marking Options (for reference):</h3>
-        <ul id="marking-options-list"></ul>
+      <!-- Marking Options -->
+      <div id="marking-options" class="mt-4">
+        <h3 class="text-xl font-semibold mb-2">
+          Marking Options (for reference):
+        </h3>
+        <ul
+          id="marking-options-list"
+          class="flex flex-wrap gap-2 justify-center"
+        ></ul>
       </div>
 
-      <button onclick="rollDice()" id="roll-dice-btn">Roll Dice</button>
-      <button onclick="endTurn()">End Turn</button>
-      <button onclick="resetTurn()">Reset Turn</button>
-
-      <div class="score-sheet">
-        <h2>Your Score Sheet</h2>
-        <div class="score-row red" id="red-row"></div>
-        <div class="score-row yellow" id="yellow-row"></div>
-        <div class="score-row green" id="green-row"></div>
-        <div class="score-row blue" id="blue-row"></div>
+      <!-- Action Buttons -->
+      <div class="flex space-x-4 justify-center">
+        <button
+          onclick="rollDice()"
+          id="roll-dice-btn"
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition disabled:opacity-50"
+        >
+          Roll Dice
+        </button>
+        <button
+          onclick="endTurn()"
+          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition disabled:opacity-50"
+        >
+          End Turn
+        </button>
+        <button
+          onclick="resetTurn()"
+          class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition disabled:opacity-50"
+        >
+          Reset Turn
+        </button>
       </div>
 
-      <div class="penalties-section">
-        <h3>Your Penalties:</h3>
-        <div id="penalties-container" class="penalty-boxes"></div>
+      <!-- Score Sheet -->
+      <div class="score-sheet mt-6">
+        <h2 class="text-2xl font-bold text-center mb-4">Your Score Sheet</h2>
+        <!-- Red Row -->
+        <div
+          id="red-row"
+          class="flex justify-center space-x-1 bg-red-500 rounded-lg py-2 mb-2"
+        ></div>
+        <!-- Yellow Row -->
+        <div
+          id="yellow-row"
+          class="flex justify-center space-x-1 bg-yellow-300 rounded-lg py-2 mb-2"
+        ></div>
+        <!-- Green Row -->
+        <div
+          id="green-row"
+          class="flex justify-center space-x-1 bg-green-500 rounded-lg py-2 mb-2"
+        ></div>
+        <!-- Blue Row -->
+        <div
+          id="blue-row"
+          class="flex justify-center space-x-1 bg-blue-500 rounded-lg py-2 mb-4"
+        ></div>
       </div>
 
-      <div id="game-over-message">Game Over!</div>
-      <div id="scoreboard"></div>
+      <!-- Penalties -->
+      <div class="penalties-section text-center">
+        <h3 class="font-bold text-lg mb-2">Your Penalties:</h3>
+        <div
+          id="penalties-container"
+          class="flex justify-center space-x-2"
+        ></div>
+      </div>
+
+      <div
+        id="game-over-message"
+        class="text-2xl font-bold text-red-600 mt-4 hidden"
+      >
+        Game Over!
+      </div>
+      <div id="scoreboard" class="mt-4 hidden"></div>
     </div>
 
     <script src="script.js"></script>
