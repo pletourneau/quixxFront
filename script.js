@@ -104,10 +104,28 @@ function sendAction(type, payload = {}) {
 
 function generateScoreRows() {
   const rowsConfig = {
-    red: { start: 2, end: 12, lock: "LOCK", ascending: true },
-    yellow: { start: 2, end: 12, lock: "LOCK", ascending: true },
-    green: { start: 12, end: 2, lock: "LOCK", ascending: false },
-    blue: { start: 12, end: 2, lock: "LOCK", ascending: false },
+    red: { start: 2, end: 12, lock: "LOCK", bg: "bg-red-500", ascending: true },
+    yellow: {
+      start: 2,
+      end: 12,
+      lock: "LOCK",
+      bg: "bg-yellow-300",
+      ascending: true,
+    },
+    green: {
+      start: 12,
+      end: 2,
+      lock: "LOCK",
+      bg: "bg-green-500",
+      ascending: false,
+    },
+    blue: {
+      start: 12,
+      end: 2,
+      lock: "LOCK",
+      bg: "bg-blue-500",
+      ascending: false,
+    },
   };
 
   Object.keys(rowsConfig).forEach((color) => {
@@ -115,35 +133,35 @@ function generateScoreRows() {
     if (rowContainer) {
       rowContainer.innerHTML = "";
 
-      const { start, end, lock, ascending } = rowsConfig[color];
+      const { start, end, lock, bg, ascending } = rowsConfig[color];
+      // Set the row container's classes for background and layout
+      rowContainer.className = `flex justify-center items-end space-x-1 ${bg} rounded-lg py-2 mb-2`;
+
       const step = start < end ? 1 : -1;
       const numbers = [];
       for (let i = start; i !== end + step; i += step) {
         numbers.push(i);
       }
 
-      // All but the last two cells
-      // Last two cells: one is final number cell, one is lock cell
       const lastNumber = numbers[numbers.length - 1];
-      const preLastNumbers = numbers.slice(0, -1);
+      const normalNumbers = numbers.slice(0, -1);
 
-      const cellsFragment = document.createDocumentFragment();
-
-      preLastNumbers.forEach((num) => {
+      // Create normal cells
+      normalNumbers.forEach((num) => {
         const cell = document.createElement("div");
         cell.textContent = num;
         cell.className =
           "w-10 h-10 bg-white border border-gray-300 flex items-center justify-center font-bold text-sm cursor-pointer";
         cell.addEventListener("click", () => attemptMarkCell(cell, color, num));
-        cellsFragment.appendChild(cell);
+        rowContainer.appendChild(cell);
       });
 
-      // Now create the special final section with "At least 5 X's"
+      // Create the final section with label and final cells
       const finalSection = document.createElement("div");
-      finalSection.className = "inline-flex flex-col items-center";
+      finalSection.className = "flex flex-col items-center space-y-1";
 
       const label = document.createElement("span");
-      label.className = "text-xs font-semibold mb-1";
+      label.className = "text-xs font-semibold text-white";
       label.textContent = "At least 5 X's";
       finalSection.appendChild(label);
 
@@ -163,14 +181,12 @@ function generateScoreRows() {
 
       // Lock cell
       const lockCell = document.createElement("div");
-      lockCell.textContent = lock; // Will be updated in updateGameUI if locked
+      lockCell.textContent = lock; // Will be updated when locked
       lockCell.className =
         "w-12 h-10 flex items-center justify-center font-bold bg-white text-black border border-gray-300";
       box.appendChild(lockCell);
 
       finalSection.appendChild(box);
-
-      rowContainer.appendChild(cellsFragment);
       rowContainer.appendChild(finalSection);
     }
   });
@@ -390,36 +406,17 @@ function updateGameUI(newState) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
       if (row) {
-        const boardArray = gameState.boards[currentPlayerName][color];
-        // The row structure:
-        // - normal cells
-        // - a finalSection (label + box) containing finalNumberCell and lockCell
-        //
-        // Let's find all cells:
-        // Normal cells: all but last two elements before the special section
-        // We appended normal cells directly, then a finalSection div.
-        // The final two scoring cells (final number and lock) are inside finalSection.
-        // Let's gather all "w-10 h-10 ..." cells from the row.
+        // Gather all w-10.h-10.bg-white cells (normal and final number cell)
         const allCells = row.querySelectorAll(".w-10.h-10.bg-white.border");
-        // boardArray length is 11 marks. The last one corresponds to the final number cell.
-        // allCells should have at least 11 normal cells + 1 lock cell. Actually, we have 10 normal + 1 final number cell.
-        // The lock cell is separate (not in boardArray).
 
-        // Mark cells that are true in boardArray as X and gray.
+        const boardArray = gameState.boards[currentPlayerName][color];
         boardArray.forEach((marked, i) => {
           const cell = allCells[i];
           if (!cell) return;
           cell.classList.remove("bg-gray-300");
           if (marked) {
             cell.classList.add("bg-gray-300");
-            cell.textContent = "X"; // Show X instead of number
-          } else {
-            // If not marked, show the original number?
-            // We can't know original number easily here. Let's store it in dataset?
-            // Or just regenerate row after each turn?
-            // For simplicity, we assume a reset turn would fix it. Usually we won't unmark cells.
-            // If needed, we can store the original number in data-original-number attribute during generateScoreRows.
-            // Let's do that now.
+            cell.textContent = "X"; // Marked cell
           }
         });
       }
@@ -521,7 +518,8 @@ function updateGameUI(newState) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
       if (!row) return;
-      const lockCell = row.querySelector(".w-12.h-10:not(.score-cell)");
+      // The lock cell is inside the finalSection box (w-12.h-10)
+      const lockCell = row.querySelector(".w-12.h-10");
       if (!lockCell) return;
 
       if (gameState.lockedRows[color]) {
