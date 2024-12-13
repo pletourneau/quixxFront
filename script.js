@@ -30,37 +30,10 @@ function startGame() {
     ).map((el) => el.textContent);
     shuffle(players);
     sendAction("startGame", { turnOrder: players });
-    updateTurnOrder(players);
   } else {
     alert("Only the host can start the game.");
   }
 }
-
-function updateTurnOrder(turnOrder) {
-  // We won't show the old turn order section now, we will show players in a row at top
-  // The logic will be in updateGameUI to show current-turn-row
-}
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if (data.type === "gameState") {
-    updateGameUI(data);
-  } else if (data.type === "error") {
-    alert(data.message);
-    const endTurnButton = document.querySelector("button[onclick='endTurn()']");
-    if (endTurnButton) {
-      endTurnButton.disabled = false;
-    }
-  } else if (data.type === "roomStatus") {
-    alert(`You have ${data.status} the room: ${data.room}`);
-    currentRoom = data.room;
-  } else if (data.type === "newGame") {
-    isRoomCreator = true;
-    currentRoom = data.room;
-    document.getElementById("start-game").style.display = "block";
-    document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
-  }
-};
 
 function sendAction(type, payload = {}) {
   if (ws.readyState === WebSocket.OPEN) {
@@ -99,7 +72,7 @@ function generateScoreRows() {
     const rowContainer = document.getElementById(`${color}-row`);
     if (rowContainer) {
       rowContainer.innerHTML = "";
-      const { start, end, lock, bg, ascending } = rowsConfig[color];
+      const { start, end, lock, bg } = rowsConfig[color];
       rowContainer.className = `flex items-center space-x-1 ${bg} rounded-lg py-2 mb-2 justify-center`;
       const step = start < end ? 1 : -1;
       const numbers = [];
@@ -117,6 +90,16 @@ function generateScoreRows() {
         cell.addEventListener("click", () => attemptMarkCell(cell, color, num));
         rowContainer.appendChild(cell);
       });
+
+      const finalSection = document.createElement("div");
+      finalSection.className = "flex flex-col items-center space-y-1";
+      const label = document.createElement("span");
+      label.className = "text-xs font-semibold text-white";
+      label.textContent = "At least 5 X's";
+      finalSection.appendChild(label);
+
+      const finalRow = document.createElement("div");
+      finalRow.className = "flex space-x-1 items-center";
       const finalNumberCell = document.createElement("div");
       finalNumberCell.textContent = lastNumber;
       finalNumberCell.setAttribute("data-original-number", lastNumber);
@@ -125,13 +108,16 @@ function generateScoreRows() {
       finalNumberCell.addEventListener("click", () =>
         attemptMarkCell(finalNumberCell, color, lastNumber)
       );
-      rowContainer.appendChild(finalNumberCell);
+      finalRow.appendChild(finalNumberCell);
 
       const lockCell = document.createElement("div");
       lockCell.textContent = lock;
       lockCell.className =
         "w-12 h-10 flex items-center justify-center font-bold bg-white text-black border border-gray-300";
-      rowContainer.appendChild(lockCell);
+      finalRow.appendChild(lockCell);
+
+      finalSection.appendChild(finalRow);
+      rowContainer.appendChild(finalSection);
     }
   });
 }
@@ -307,23 +293,19 @@ function displayScoreboard(scoreboard) {
 function updateCurrentTurnRow(activePlayer, turnOrder) {
   const row = document.getElementById("current-turn-row");
   row.innerHTML = "";
-  // Show active player first, bold, green
   const activeSpan = document.createElement("span");
   activeSpan.textContent = activePlayer;
   activeSpan.className = "font-bold text-green-700";
   row.appendChild(activeSpan);
-
   const currentIndex = turnOrder.indexOf(activePlayer);
   let nextPlayers = turnOrder
     .slice(currentIndex + 1)
     .concat(turnOrder.slice(0, currentIndex));
-  if (nextPlayers.length > 0) {
-    nextPlayers.forEach((p) => {
-      const span = document.createElement("span");
-      span.textContent = p;
-      row.appendChild(span);
-    });
-  }
+  nextPlayers.forEach((p) => {
+    const span = document.createElement("span");
+    span.textContent = p;
+    row.appendChild(span);
+  });
 }
 
 function updateGameUI(newState) {
