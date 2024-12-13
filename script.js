@@ -93,6 +93,7 @@ function generateScoreRows() {
 
       const finalSection = document.createElement("div");
       finalSection.className = "flex flex-col items-center space-y-1";
+
       const label = document.createElement("span");
       label.className = "text-xs font-semibold text-white";
       label.textContent = "At least 5 X's";
@@ -100,6 +101,7 @@ function generateScoreRows() {
 
       const finalRow = document.createElement("div");
       finalRow.className = "flex space-x-1 items-center";
+
       const finalNumberCell = document.createElement("div");
       finalNumberCell.textContent = lastNumber;
       finalNumberCell.setAttribute("data-original-number", lastNumber);
@@ -149,8 +151,8 @@ function rollDice() {
     gameState.turnOrder &&
     gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName
   ) {
-    if (gameState.diceRolledThisTurn) {
-      alert("Dice have already been rolled this turn.");
+    // Always allow the active player to roll dice if game started and not over
+    if (!gameState.started || gameState.gameOver) {
       return;
     }
     sendAction("rollDice");
@@ -385,8 +387,8 @@ function updateGameUI(newState) {
     if (!gameState.started || gameState.gameOver) {
       rollDiceButton.disabled = true;
     } else {
-      const canRoll = isActivePlayer && !gameState.diceRolledThisTurn;
-      rollDiceButton.disabled = !canRoll;
+      // Always allow active player to roll dice if game started and not gameOver
+      rollDiceButton.disabled = !isActivePlayer;
     }
   }
 
@@ -468,3 +470,24 @@ function updateGameUI(newState) {
     if (gameOverMessage) gameOverMessage.classList.add("hidden");
   }
 }
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === "gameState") {
+    updateGameUI(data);
+  } else if (data.type === "error") {
+    alert(data.message);
+    const endTurnButton = document.querySelector("button[onclick='endTurn()']");
+    if (endTurnButton) {
+      endTurnButton.disabled = false;
+    }
+  } else if (data.type === "roomStatus") {
+    alert(`You have ${data.status} the room: ${data.room}`);
+    currentRoom = data.room;
+  } else if (data.type === "newGame") {
+    isRoomCreator = true;
+    currentRoom = data.room;
+    document.getElementById("start-game").style.display = "block";
+    document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
+  }
+};
