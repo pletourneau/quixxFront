@@ -3,13 +3,13 @@ const ws = new WebSocket("wss://quixxback.onrender.com");
 let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
+let turnPopupTimeout;
 
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
 
 ws.onopen = () => {
-  console.log("WebSocket connection established!");
   generateScoreRows();
   generatePenaltyBoxes();
 };
@@ -17,12 +17,8 @@ ws.onopen = () => {
 function joinGame() {
   const passcode = document.getElementById("passcode").value;
   const playerName = document.getElementById("player-name").value;
-
   if (passcode && playerName) {
     joinRoom(passcode, playerName);
-    console.log(
-      `Joining room with passcode: ${passcode} as player: ${playerName}`
-    );
   } else {
     alert("Enter both a passcode and your name to join the game.");
   }
@@ -45,7 +41,6 @@ function updateTurnOrder(turnOrder) {
   const turnOrderElement = document.getElementById("turn-order");
   turnOrderElement.innerHTML =
     "<h3 class='text-xl font-semibold mb-2'>Turn Order:</h3>";
-
   if (turnOrder && turnOrder.length > 0) {
     turnOrder.forEach((playerName, index) => {
       const div = document.createElement("div");
@@ -71,7 +66,6 @@ function updateTurnOrder(turnOrder) {
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-
   if (data.type === "gameState") {
     updateGameUI(data);
   } else if (data.type === "error") {
@@ -81,13 +75,11 @@ ws.onmessage = (event) => {
       endTurnButton.disabled = false;
     }
   } else if (data.type === "roomStatus") {
-    console.log(`Room ${data.room} was ${data.status}`);
     alert(`You have ${data.status} the room: ${data.room}`);
     currentRoom = data.room;
   } else if (data.type === "newGame") {
     isRoomCreator = true;
     currentRoom = data.room;
-    console.log("Player is the room creator: ", isRoomCreator);
     document.getElementById("start-game").style.display = "block";
     document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
   }
@@ -132,21 +124,15 @@ function generateScoreRows() {
     const rowContainer = document.getElementById(`${color}-row`);
     if (rowContainer) {
       rowContainer.innerHTML = "";
-
       const { start, end, lock, bg, ascending } = rowsConfig[color];
-      // Set the row container's classes for background and layout
       rowContainer.className = `flex items-center space-x-1 ${bg} rounded-lg py-2 mb-2 justify-center`;
-
       const step = start < end ? 1 : -1;
       const numbers = [];
       for (let i = start; i !== end + step; i += step) {
         numbers.push(i);
       }
-
       const lastNumber = numbers[numbers.length - 1];
       const normalNumbers = numbers.slice(0, -1);
-
-      // Create normal cells
       normalNumbers.forEach((num) => {
         const cell = document.createElement("div");
         cell.textContent = num;
@@ -156,22 +142,6 @@ function generateScoreRows() {
         cell.addEventListener("click", () => attemptMarkCell(cell, color, num));
         rowContainer.appendChild(cell);
       });
-
-      // Final two cells + label inline
-      // We'll put them in a flex container so they're in the same row
-      const finalSection = document.createElement("div");
-      finalSection.className = "flex items-center space-x-2 ml-2"; // small gap and slight margin
-
-      const label = document.createElement("span");
-      label.className = "text-xs font-semibold text-white";
-      label.textContent = "At least 5 X's";
-      finalSection.appendChild(label);
-
-      const box = document.createElement("div");
-      box.className =
-        "flex space-x-1 border border-black rounded px-1 py-1 bg-white items-center";
-
-      // Final number cell
       const finalNumberCell = document.createElement("div");
       finalNumberCell.textContent = lastNumber;
       finalNumberCell.setAttribute("data-original-number", lastNumber);
@@ -180,21 +150,15 @@ function generateScoreRows() {
       finalNumberCell.addEventListener("click", () =>
         attemptMarkCell(finalNumberCell, color, lastNumber)
       );
-      box.appendChild(finalNumberCell);
+      rowContainer.appendChild(finalNumberCell);
 
-      // Lock cell
       const lockCell = document.createElement("div");
-      lockCell.textContent = lock; // Will be updated when locked
+      lockCell.textContent = lock;
       lockCell.className =
         "w-12 h-10 flex items-center justify-center font-bold bg-white text-black border border-gray-300";
-      box.appendChild(lockCell);
-
-      finalSection.appendChild(box);
-      rowContainer.appendChild(finalSection);
+      rowContainer.appendChild(lockCell);
     }
   });
-
-  console.log("Score rows generated");
 }
 
 function generatePenaltyBoxes() {
@@ -237,7 +201,6 @@ function rollDice() {
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
   sendAction("endTurn", { playerName: currentPlayerName });
-
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     endTurnButton.disabled = true;
@@ -252,18 +215,14 @@ function resetTurn() {
 function calculateMarkingOptions(diceValues, isActivePlayer) {
   const optionsContainer = document.getElementById("marking-options-list");
   if (!optionsContainer) return;
-
   optionsContainer.innerHTML = "";
-
   const whiteSum = diceValues.white1 + diceValues.white2;
-
   const whiteOption = createOptionElement(
     whiteSum,
     "white",
     "bg-white text-black border border-gray-300"
   );
   optionsContainer.appendChild(whiteOption);
-
   if (isActivePlayer) {
     const whiteAndColorSums = [];
     if (diceValues.red !== undefined) {
@@ -290,7 +249,6 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
         { color: "blue", value: diceValues.white2 + diceValues.blue }
       );
     }
-
     whiteAndColorSums.forEach(({ color, value }) => {
       let bgClass = "";
       switch (color) {
@@ -371,24 +329,49 @@ function displayScoreboard(scoreboard) {
   scoreboardDiv.classList.remove("hidden");
 }
 
+function showTurnPopup(currentPlayerName, turnOrder) {
+  const popup = document.getElementById("turn-popup");
+  const popupPlayer = document.getElementById("turn-popup-player");
+  const popupOthers = document.getElementById("turn-popup-others");
+  popupPlayer.textContent = `${currentPlayerName}'s Turn`;
+  const currentIndex = turnOrder.indexOf(currentPlayerName);
+  let nextPlayers = turnOrder
+    .slice(currentIndex + 1)
+    .concat(turnOrder.slice(0, currentIndex));
+  popupOthers.textContent =
+    nextPlayers.length > 0
+      ? "Next: " + nextPlayers.join(", ")
+      : "No other players";
+  popup.classList.remove("hidden");
+  if (turnPopupTimeout) clearTimeout(turnPopupTimeout);
+  turnPopupTimeout = setTimeout(() => {
+    popup.classList.add("hidden");
+  }, 1500);
+}
+
 function updateGameUI(newState) {
   gameState = newState;
-
   const joinGameScreen = document.getElementById("join-game-screen");
   const gameScreen = document.getElementById("game-screen");
-
-  // Toggle screens based on game state
   if (gameState.started) {
     joinGameScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
   }
-
   const currentPlayerName = document.getElementById("player-name").value;
   const isActivePlayer =
     gameState.turnOrder &&
     gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName;
 
-  // Update dice display
+  if (
+    gameState.started &&
+    !gameState.gameOver &&
+    !gameState.diceRolledThisTurn &&
+    gameState.turnOrder
+  ) {
+    const activePlayer = gameState.turnOrder[gameState.activePlayerIndex];
+    showTurnPopup(activePlayer, gameState.turnOrder);
+  }
+
   if (gameState.diceValues) {
     Object.entries(gameState.diceValues).forEach(([dice, value]) => {
       const diceElement = document.getElementById(dice);
@@ -404,7 +387,6 @@ function updateGameUI(newState) {
     });
   }
 
-  // Update marked cells or reset them if unmarked
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -417,19 +399,16 @@ function updateGameUI(newState) {
           cell.classList.remove("bg-gray-300");
           if (marked) {
             cell.classList.add("bg-gray-300");
-            cell.textContent = "X"; // Marked cell
+            cell.textContent = "X";
           } else {
-            // Reset to original number if not marked
             const originalNumber = cell.getAttribute("data-original-number");
             cell.textContent = originalNumber;
           }
         });
-        // If reset turn clears all marks, the above loop ensures unmarked cells show original numbers.
       }
     });
   }
 
-  // Update player list
   const playerInfo = document.getElementById("player-info");
   if (gameState.players) {
     playerInfo.innerHTML = `<h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>`;
@@ -437,24 +416,20 @@ function updateGameUI(newState) {
       const playerElement = document.createElement("div");
       playerElement.classList.add("player");
       playerElement.textContent = player.name;
-
       if (
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(player.name)
       ) {
         playerElement.classList.add("line-through");
       }
-
       playerInfo.appendChild(playerElement);
     });
   }
 
-  // Update turn order
   if (gameState.turnOrder) {
     updateTurnOrder(gameState.turnOrder);
   }
 
-  // Update buttons
   const rollDiceButton = document.querySelector("#roll-dice-btn");
   if (rollDiceButton) {
     if (!gameState.started || gameState.gameOver) {
@@ -491,7 +466,6 @@ function updateGameUI(newState) {
     }
   }
 
-  // Update marking options
   const optionsContainer = document.getElementById("marking-options-list");
   if (gameState.diceValues && gameState.started && !gameState.gameOver) {
     calculateMarkingOptions(gameState.diceValues, isActivePlayer);
@@ -499,7 +473,6 @@ function updateGameUI(newState) {
     optionsContainer.innerHTML = "";
   }
 
-  // Update penalties
   if (
     gameState.penalties &&
     gameState.penalties[currentPlayerName] !== undefined
@@ -519,14 +492,12 @@ function updateGameUI(newState) {
     }
   }
 
-  // Update lock cells: If row is locked, show lock icon instead of "LOCK"
   if (gameState.lockedRows) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
       if (!row) return;
       const lockCell = row.querySelector(".w-12.h-10");
       if (!lockCell) return;
-
       if (gameState.lockedRows[color]) {
         lockCell.textContent = "🔒";
         lockCell.classList.remove("text-black", "bg-white");
@@ -537,7 +508,6 @@ function updateGameUI(newState) {
     });
   }
 
-  // If game over, show message and scoreboard
   const gameOverMessage = document.getElementById("game-over-message");
   if (gameState.gameOver) {
     if (gameOverMessage) gameOverMessage.classList.remove("hidden");
