@@ -351,12 +351,14 @@ function showTurnPopup(currentPlayerName, turnOrder) {
 
 function updateGameUI(newState) {
   gameState = newState;
+
   const joinGameScreen = document.getElementById("join-game-screen");
   const gameScreen = document.getElementById("game-screen");
   if (gameState.started) {
     joinGameScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
   }
+
   const currentPlayerName = document.getElementById("player-name").value;
   const isActivePlayer =
     gameState.turnOrder &&
