@@ -135,7 +135,7 @@ function generateScoreRows() {
 
       const { start, end, lock, bg, ascending } = rowsConfig[color];
       // Set the row container's classes for background and layout
-      rowContainer.className = `flex justify-center items-end space-x-1 ${bg} rounded-lg py-2 mb-2`;
+      rowContainer.className = `flex items-center space-x-1 ${bg} rounded-lg py-2 mb-2 justify-center`;
 
       const step = start < end ? 1 : -1;
       const numbers = [];
@@ -150,15 +150,17 @@ function generateScoreRows() {
       normalNumbers.forEach((num) => {
         const cell = document.createElement("div");
         cell.textContent = num;
+        cell.setAttribute("data-original-number", num);
         cell.className =
           "w-10 h-10 bg-white border border-gray-300 flex items-center justify-center font-bold text-sm cursor-pointer";
         cell.addEventListener("click", () => attemptMarkCell(cell, color, num));
         rowContainer.appendChild(cell);
       });
 
-      // Create the final section with label and final cells
+      // Final two cells + label inline
+      // We'll put them in a flex container so they're in the same row
       const finalSection = document.createElement("div");
-      finalSection.className = "flex flex-col items-center space-y-1";
+      finalSection.className = "flex items-center space-x-2 ml-2"; // small gap and slight margin
 
       const label = document.createElement("span");
       label.className = "text-xs font-semibold text-white";
@@ -167,11 +169,12 @@ function generateScoreRows() {
 
       const box = document.createElement("div");
       box.className =
-        "flex space-x-1 border border-black rounded px-1 py-1 bg-white";
+        "flex space-x-1 border border-black rounded px-1 py-1 bg-white items-center";
 
       // Final number cell
       const finalNumberCell = document.createElement("div");
       finalNumberCell.textContent = lastNumber;
+      finalNumberCell.setAttribute("data-original-number", lastNumber);
       finalNumberCell.className =
         "w-10 h-10 bg-white border border-gray-300 flex items-center justify-center font-bold text-sm cursor-pointer";
       finalNumberCell.addEventListener("click", () =>
@@ -401,14 +404,12 @@ function updateGameUI(newState) {
     });
   }
 
-  // Update marked cells
+  // Update marked cells or reset them if unmarked
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
       if (row) {
-        // Gather all w-10.h-10.bg-white cells (normal and final number cell)
         const allCells = row.querySelectorAll(".w-10.h-10.bg-white.border");
-
         const boardArray = gameState.boards[currentPlayerName][color];
         boardArray.forEach((marked, i) => {
           const cell = allCells[i];
@@ -417,8 +418,13 @@ function updateGameUI(newState) {
           if (marked) {
             cell.classList.add("bg-gray-300");
             cell.textContent = "X"; // Marked cell
+          } else {
+            // Reset to original number if not marked
+            const originalNumber = cell.getAttribute("data-original-number");
+            cell.textContent = originalNumber;
           }
         });
+        // If reset turn clears all marks, the above loop ensures unmarked cells show original numbers.
       }
     });
   }
@@ -518,7 +524,6 @@ function updateGameUI(newState) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
       if (!row) return;
-      // The lock cell is inside the finalSection box (w-12.h-10)
       const lockCell = row.querySelector(".w-12.h-10");
       if (!lockCell) return;
 
