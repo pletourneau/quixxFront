@@ -3,7 +3,6 @@ const ws = new WebSocket("wss://quixxback.onrender.com");
 let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
-let turnPopupTimeout;
 
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
@@ -38,30 +37,8 @@ function startGame() {
 }
 
 function updateTurnOrder(turnOrder) {
-  const turnOrderElement = document.getElementById("turn-order");
-  turnOrderElement.innerHTML =
-    "<h3 class='text-xl font-semibold mb-2'>Turn Order:</h3>";
-  if (turnOrder && turnOrder.length > 0) {
-    turnOrder.forEach((playerName, index) => {
-      const div = document.createElement("div");
-      div.textContent = `${index + 1}. ${playerName}`;
-      if (index === 0) {
-        div.classList.add(
-          "text-green-700",
-          "font-bold",
-          "border",
-          "border-black",
-          "rounded",
-          "p-1"
-        );
-      }
-      turnOrderElement.appendChild(div);
-    });
-  } else {
-    const noTurnOrderMessage = document.createElement("div");
-    noTurnOrderMessage.textContent = "No turn order yet";
-    turnOrderElement.appendChild(noTurnOrderMessage);
-  }
+  // We won't show the old turn order section now, we will show players in a row at top
+  // The logic will be in updateGameUI to show current-turn-row
 }
 
 ws.onmessage = (event) => {
@@ -89,8 +66,6 @@ function sendAction(type, payload = {}) {
   if (ws.readyState === WebSocket.OPEN) {
     const message = { type, ...payload };
     ws.send(JSON.stringify(message));
-  } else {
-    console.warn("WebSocket not open, cannot send message:", type);
   }
 }
 
@@ -329,49 +304,44 @@ function displayScoreboard(scoreboard) {
   scoreboardDiv.classList.remove("hidden");
 }
 
-function showTurnPopup(currentPlayerName, turnOrder) {
-  const popup = document.getElementById("turn-popup");
-  const popupPlayer = document.getElementById("turn-popup-player");
-  const popupOthers = document.getElementById("turn-popup-others");
-  popupPlayer.textContent = `${currentPlayerName}'s Turn`;
-  const currentIndex = turnOrder.indexOf(currentPlayerName);
+function updateCurrentTurnRow(activePlayer, turnOrder) {
+  const row = document.getElementById("current-turn-row");
+  row.innerHTML = "";
+  // Show active player first, bold, green
+  const activeSpan = document.createElement("span");
+  activeSpan.textContent = activePlayer;
+  activeSpan.className = "font-bold text-green-700";
+  row.appendChild(activeSpan);
+
+  const currentIndex = turnOrder.indexOf(activePlayer);
   let nextPlayers = turnOrder
     .slice(currentIndex + 1)
     .concat(turnOrder.slice(0, currentIndex));
-  popupOthers.textContent =
-    nextPlayers.length > 0
-      ? "Next: " + nextPlayers.join(", ")
-      : "No other players";
-  popup.classList.remove("hidden");
-  if (turnPopupTimeout) clearTimeout(turnPopupTimeout);
-  turnPopupTimeout = setTimeout(() => {
-    popup.classList.add("hidden");
-  }, 1500);
+  if (nextPlayers.length > 0) {
+    nextPlayers.forEach((p) => {
+      const span = document.createElement("span");
+      span.textContent = p;
+      row.appendChild(span);
+    });
+  }
 }
 
 function updateGameUI(newState) {
   gameState = newState;
-
   const joinGameScreen = document.getElementById("join-game-screen");
   const gameScreen = document.getElementById("game-screen");
   if (gameState.started) {
     joinGameScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
   }
-
   const currentPlayerName = document.getElementById("player-name").value;
   const isActivePlayer =
     gameState.turnOrder &&
     gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName;
 
-  if (
-    gameState.started &&
-    !gameState.gameOver &&
-    !gameState.diceRolledThisTurn &&
-    gameState.turnOrder
-  ) {
+  if (gameState.turnOrder && gameState.turnOrder.length > 0) {
     const activePlayer = gameState.turnOrder[gameState.activePlayerIndex];
-    showTurnPopup(activePlayer, gameState.turnOrder);
+    updateCurrentTurnRow(activePlayer, gameState.turnOrder);
   }
 
   if (gameState.diceValues) {
@@ -426,10 +396,6 @@ function updateGameUI(newState) {
       }
       playerInfo.appendChild(playerElement);
     });
-  }
-
-  if (gameState.turnOrder) {
-    updateTurnOrder(gameState.turnOrder);
   }
 
   const rollDiceButton = document.querySelector("#roll-dice-btn");
