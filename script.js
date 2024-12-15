@@ -347,16 +347,25 @@ function updateGameUI(newState) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
       if (row) {
-        const allCells = row.querySelectorAll(".w-10.h-10.bg-white.border");
+        const allCells = row.querySelectorAll(
+          ".w-10.h-10.bg-white.border, .w-10.h-10.border"
+        );
+        // The cell might have bg-white, let's allow either
+        // We'll handle marked cells below:
         const boardArray = gameState.boards[currentPlayerName][color];
         boardArray.forEach((marked, i) => {
           const cell = allCells[i];
           if (!cell) return;
+          // Remove bg-gray-300 and bg-white first
           cell.classList.remove("bg-gray-300");
+          cell.classList.remove("bg-white");
           if (marked) {
-            cell.classList.add("bg-gray-300");
+            // Marked cell
+            cell.classList.add("bg-gray-300"); // Add gray background when marked
             cell.textContent = "X";
           } else {
+            // Not marked
+            cell.classList.add("bg-white");
             const originalNumber = cell.getAttribute("data-original-number");
             cell.textContent = originalNumber;
           }
