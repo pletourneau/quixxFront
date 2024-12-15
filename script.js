@@ -81,6 +81,7 @@ function generateScoreRows() {
       }
       const lastNumber = numbers[numbers.length - 1];
       const normalNumbers = numbers.slice(0, -1);
+
       normalNumbers.forEach((num) => {
         const cell = document.createElement("div");
         cell.textContent = num;
@@ -386,7 +387,6 @@ function updateGameUI(newState) {
     if (!gameState.started || gameState.gameOver) {
       rollDiceButton.disabled = true;
     } else {
-      // Always allow active player to roll dice if game started and not gameOver
       rollDiceButton.disabled = !isActivePlayer;
     }
   }
