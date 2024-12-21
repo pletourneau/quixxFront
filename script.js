@@ -176,6 +176,8 @@ function resetTurn() {
 }
 
 function calculateMarkingOptions(diceValues, isActivePlayer) {
+  // COMMENTING OUT THIS ENTIRE FUNCTION BODY TO REMOVE MARKING OPTIONS
+  /*
   const optionsContainer = document.getElementById("marking-options-list");
   if (!optionsContainer) return;
   optionsContainer.innerHTML = "";
@@ -236,13 +238,17 @@ function calculateMarkingOptions(diceValues, isActivePlayer) {
       optionsContainer.appendChild(colorOption);
     });
   }
+  */
 }
 
 function createOptionElement(value, color, additionalClasses = "") {
+  // Since we are removing marking options, let's just comment out the body
+  /*
   const option = document.createElement("div");
   option.className = `w-12 h-12 flex items-center justify-center text-lg font-bold rounded cursor-pointer ${additionalClasses}`;
   option.textContent = value;
   return option;
+  */
 }
 
 function shuffle(array) {
@@ -350,21 +356,16 @@ function updateGameUI(newState) {
         const allCells = row.querySelectorAll(
           ".w-10.h-10.bg-white.border, .w-10.h-10.border"
         );
-        // The cell might have bg-white, let's allow either
-        // We'll handle marked cells below:
         const boardArray = gameState.boards[currentPlayerName][color];
         boardArray.forEach((marked, i) => {
           const cell = allCells[i];
           if (!cell) return;
-          // Remove bg-gray-300 and bg-white first
           cell.classList.remove("bg-gray-300");
           cell.classList.remove("bg-white");
           if (marked) {
-            // Marked cell
             cell.classList.add("bg-gray-300"); // Add gray background when marked
             cell.textContent = "X";
           } else {
-            // Not marked
             cell.classList.add("bg-white");
             const originalNumber = cell.getAttribute("data-original-number");
             cell.textContent = originalNumber;
@@ -381,6 +382,14 @@ function updateGameUI(newState) {
       const playerElement = document.createElement("div");
       playerElement.classList.add("player");
       playerElement.textContent = player.name;
+
+      // Set name color based on connection status
+      if (player.connected === false) {
+        playerElement.style.color = "red";
+      } else {
+        playerElement.style.color = "black";
+      }
+
       if (
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(player.name)
@@ -426,12 +435,15 @@ function updateGameUI(newState) {
     }
   }
 
+  // Commenting out the logic for marking options
+  /*
   const optionsContainer = document.getElementById("marking-options-list");
   if (gameState.diceValues && gameState.started && !gameState.gameOver) {
     calculateMarkingOptions(gameState.diceValues, isActivePlayer);
   } else if (optionsContainer) {
     optionsContainer.innerHTML = "";
   }
+  */
 
   if (
     gameState.penalties &&
