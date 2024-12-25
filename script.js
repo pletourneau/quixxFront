@@ -3,7 +3,7 @@ const ws = new WebSocket("wss://quixxback.onrender.com");
 let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
-// Track the previous active player to know when it changes
+// Track the previous active player to know when it changes; start as null
 let lastActivePlayer = null;
 
 function joinRoom(passcode, playerName) {
@@ -191,13 +191,9 @@ function resetTurn() {
 }
 
 /* The marking options code is commented out per your request
-function calculateMarkingOptions(diceValues, isActivePlayer) {
-  ...
-}
+function calculateMarkingOptions(diceValues, isActivePlayer) { ... }
 
-function createOptionElement(value, color, additionalClasses = "") {
-  ...
-}
+function createOptionElement(value, color, additionalClasses = "") { ... }
 */
 
 function shuffle(array) {
@@ -273,6 +269,7 @@ function updateGameUI(newState) {
     joinGameScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
   }
+
   const currentPlayerName = document.getElementById("player-name").value;
   const activePlayerName =
     gameState.turnOrder && gameState.turnOrder.length > 0
@@ -280,12 +277,18 @@ function updateGameUI(newState) {
       : null;
   const isActivePlayer = activePlayerName === currentPlayerName;
 
-  // Check if the active player changed from last update
-  if (activePlayerName !== lastActivePlayer) {
-    // If the new active player is me, show overlay
+  // Check if the active player changed from last update or if it's the first time
+  if (activePlayerName && activePlayerName !== lastActivePlayer) {
+    console.log(
+      "Active player changed from",
+      lastActivePlayer,
+      "to",
+      activePlayerName
+    );
+
+    // If the new active player is me and the game is ongoing, show the overlay
     if (isActivePlayer && !gameState.gameOver) {
-      // Only show if the game is ongoing
-      showTurnOverlay(currentPlayerName);
+      showTurnOverlay(activePlayerName);
     }
     lastActivePlayer = activePlayerName;
   }
