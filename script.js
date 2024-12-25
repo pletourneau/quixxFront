@@ -3,8 +3,19 @@ const ws = new WebSocket("wss://quixxback.onrender.com");
 let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
-// Track the previous active player to know when it changes; start as null
-let lastActivePlayer = null;
+
+// 1. Overlay logic
+function showTurnOverlay(playerName) {
+  const overlay = document.getElementById("turn-overlay");
+  const message = document.getElementById("turn-message");
+  message.textContent = `${playerName}'s turn!`;
+  overlay.classList.remove("hidden");
+}
+
+// Hide overlay on button click
+document.getElementById("turn-confirm").addEventListener("click", () => {
+  document.getElementById("turn-overlay").classList.add("hidden");
+});
 
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
@@ -14,19 +25,6 @@ ws.onopen = () => {
   generateScoreRows();
   generatePenaltyBoxes();
 };
-
-// Turn overlay logic
-function showTurnOverlay(playerName) {
-  const overlay = document.getElementById("turn-overlay");
-  const message = document.getElementById("turn-message");
-  message.textContent = `${playerName}'s turn!`;
-  overlay.classList.remove("hidden");
-}
-
-// Event listener for turn-confirm button to hide the overlay
-document.getElementById("turn-confirm").addEventListener("click", () => {
-  document.getElementById("turn-overlay").classList.add("hidden");
-});
 
 function joinGame() {
   const passcode = document.getElementById("passcode").value;
@@ -190,9 +188,8 @@ function resetTurn() {
   sendAction("resetTurnForPlayer", { playerName: currentPlayerName });
 }
 
-/* The marking options code is commented out per your request
+/* We are not using marking options, so it's commented out
 function calculateMarkingOptions(diceValues, isActivePlayer) { ... }
-
 function createOptionElement(value, color, additionalClasses = "") { ... }
 */
 
@@ -243,24 +240,7 @@ function displayScoreboard(scoreboard) {
   scoreboardDiv.classList.remove("hidden");
 }
 
-function updateCurrentTurnRow(activePlayer, turnOrder) {
-  const row = document.getElementById("current-turn-row");
-  row.innerHTML = "";
-  const activeSpan = document.createElement("span");
-  activeSpan.textContent = activePlayer;
-  activeSpan.className = "font-bold text-green-700";
-  row.appendChild(activeSpan);
-  const currentIndex = turnOrder.indexOf(activePlayer);
-  let nextPlayers = turnOrder
-    .slice(currentIndex + 1)
-    .concat(turnOrder.slice(0, currentIndex));
-  nextPlayers.forEach((p) => {
-    const span = document.createElement("span");
-    span.textContent = p;
-    row.appendChild(span);
-  });
-}
-
+// 2. We'll detect a "fresh turn" if turnEndedBy = [] and diceRolledThisTurn = false
 function updateGameUI(newState) {
   gameState = newState;
   const joinGameScreen = document.getElementById("join-game-screen");
@@ -271,32 +251,32 @@ function updateGameUI(newState) {
   }
 
   const currentPlayerName = document.getElementById("player-name").value;
-  const activePlayerName =
-    gameState.turnOrder && gameState.turnOrder.length > 0
-      ? gameState.turnOrder[gameState.activePlayerIndex]
-      : null;
-  const isActivePlayer = activePlayerName === currentPlayerName;
-
-  // Check if the active player changed from last update or if it's the first time
-  if (activePlayerName && activePlayerName !== lastActivePlayer) {
-    console.log(
-      "Active player changed from",
-      lastActivePlayer,
-      "to",
-      activePlayerName
-    );
-
-    // If the new active player is me and the game is ongoing, show the overlay
-    if (isActivePlayer && !gameState.gameOver) {
-      showTurnOverlay(activePlayerName);
-    }
-    lastActivePlayer = activePlayerName;
+  // Identify the active player
+  const activePlayerIndex = gameState.activePlayerIndex;
+  let activePlayerName = null;
+  if (gameState.turnOrder && gameState.turnOrder.length > 0) {
+    activePlayerName = gameState.turnOrder[activePlayerIndex];
   }
 
+  const isActivePlayer = activePlayerName === currentPlayerName;
+
+  // If it's a new turn (nobody ended turn yet, dice not rolled) and I'm the active player
+  if (
+    !gameState.gameOver &&
+    isActivePlayer &&
+    gameState.turnEndedBy.length === 0 &&
+    gameState.diceRolledThisTurn === false
+  ) {
+    // Show overlay each time a new turn starts for the active player
+    showTurnOverlay(currentPlayerName);
+  }
+
+  // Update turn order row
   if (gameState.turnOrder && gameState.turnOrder.length > 0) {
     updateCurrentTurnRow(activePlayerName, gameState.turnOrder);
   }
 
+  // Show dice values or fallback
   if (gameState.diceValues) {
     Object.entries(gameState.diceValues).forEach(([dice, value]) => {
       const diceElement = document.getElementById(dice);
@@ -306,12 +286,11 @@ function updateGameUI(newState) {
     const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
     diceIds.forEach((dice) => {
       const diceElement = document.getElementById(dice);
-      if (diceElement) {
-        diceElement.textContent = "🎲";
-      }
+      if (diceElement) diceElement.textContent = "🎲";
     });
   }
 
+  // Update board if we have data
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -326,7 +305,7 @@ function updateGameUI(newState) {
           cell.classList.remove("bg-gray-300");
           cell.classList.remove("bg-white");
           if (marked) {
-            cell.classList.add("bg-gray-300"); // Add gray background when marked
+            cell.classList.add("bg-gray-300");
             cell.textContent = "X";
           } else {
             cell.classList.add("bg-white");
@@ -338,6 +317,7 @@ function updateGameUI(newState) {
     });
   }
 
+  // Update players in the room
   const playerInfo = document.getElementById("player-info");
   if (gameState.players) {
     playerInfo.innerHTML = `<h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>`;
@@ -346,13 +326,13 @@ function updateGameUI(newState) {
       playerElement.classList.add("player");
       playerElement.textContent = player.name;
 
-      // Set name color based on connection status
+      // Show them as red if disconnected
       if (player.connected === false) {
         playerElement.style.color = "red";
       } else {
         playerElement.style.color = "black";
       }
-
+      // Show strikethrough if they've ended their turn
       if (
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(player.name)
@@ -363,6 +343,7 @@ function updateGameUI(newState) {
     });
   }
 
+  // Enable/disable rollDice button
   const rollDiceButton = document.querySelector("#roll-dice-btn");
   if (rollDiceButton) {
     if (!gameState.started || gameState.gameOver) {
@@ -372,6 +353,7 @@ function updateGameUI(newState) {
     }
   }
 
+  // Enable/disable endTurn button
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     if (!gameState.started || gameState.gameOver) {
@@ -384,6 +366,7 @@ function updateGameUI(newState) {
     }
   }
 
+  // Enable/disable resetTurn button
   const resetTurnButton = document.querySelector(
     "button[onclick='resetTurn()']"
   );
@@ -398,15 +381,7 @@ function updateGameUI(newState) {
     }
   }
 
-  /*
-  const optionsContainer = document.getElementById("marking-options-list");
-  if (gameState.diceValues && gameState.started && !gameState.gameOver) {
-    calculateMarkingOptions(gameState.diceValues, isActivePlayer);
-  } else if (optionsContainer) {
-    optionsContainer.innerHTML = "";
-  }
-  */
-
+  // Update penalties
   if (
     gameState.penalties &&
     gameState.penalties[currentPlayerName] !== undefined
@@ -426,6 +401,7 @@ function updateGameUI(newState) {
     }
   }
 
+  // Update locked rows
   if (gameState.lockedRows) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -442,6 +418,7 @@ function updateGameUI(newState) {
     });
   }
 
+  // Check for game over
   const gameOverMessage = document.getElementById("game-over-message");
   if (gameState.gameOver) {
     if (gameOverMessage) gameOverMessage.classList.remove("hidden");
