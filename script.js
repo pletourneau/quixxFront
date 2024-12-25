@@ -3,6 +3,8 @@ const ws = new WebSocket("wss://quixxback.onrender.com");
 let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
+// Track the previous active player to know when it changes
+let lastActivePlayer = null;
 
 function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
@@ -12,6 +14,19 @@ ws.onopen = () => {
   generateScoreRows();
   generatePenaltyBoxes();
 };
+
+// Turn overlay logic
+function showTurnOverlay(playerName) {
+  const overlay = document.getElementById("turn-overlay");
+  const message = document.getElementById("turn-message");
+  message.textContent = `${playerName}'s turn!`;
+  overlay.classList.remove("hidden");
+}
+
+// Event listener for turn-confirm button to hide the overlay
+document.getElementById("turn-confirm").addEventListener("click", () => {
+  document.getElementById("turn-overlay").classList.add("hidden");
+});
 
 function joinGame() {
   const passcode = document.getElementById("passcode").value;
@@ -175,81 +190,15 @@ function resetTurn() {
   sendAction("resetTurnForPlayer", { playerName: currentPlayerName });
 }
 
+/* The marking options code is commented out per your request
 function calculateMarkingOptions(diceValues, isActivePlayer) {
-  // COMMENTING OUT THIS ENTIRE FUNCTION BODY TO REMOVE MARKING OPTIONS
-  /*
-  const optionsContainer = document.getElementById("marking-options-list");
-  if (!optionsContainer) return;
-  optionsContainer.innerHTML = "";
-  const whiteSum = diceValues.white1 + diceValues.white2;
-  const whiteOption = createOptionElement(
-    whiteSum,
-    "white",
-    "bg-white text-black border border-gray-300"
-  );
-  optionsContainer.appendChild(whiteOption);
-  if (isActivePlayer) {
-    const whiteAndColorSums = [];
-    if (diceValues.red !== undefined) {
-      whiteAndColorSums.push(
-        { color: "red", value: diceValues.white1 + diceValues.red },
-        { color: "red", value: diceValues.white2 + diceValues.red }
-      );
-    }
-    if (diceValues.yellow !== undefined) {
-      whiteAndColorSums.push(
-        { color: "yellow", value: diceValues.white1 + diceValues.yellow },
-        { color: "yellow", value: diceValues.white2 + diceValues.yellow }
-      );
-    }
-    if (diceValues.green !== undefined) {
-      whiteAndColorSums.push(
-        { color: "green", value: diceValues.white1 + diceValues.green },
-        { color: "green", value: diceValues.white2 + diceValues.green }
-      );
-    }
-    if (diceValues.blue !== undefined) {
-      whiteAndColorSums.push(
-        { color: "blue", value: diceValues.white1 + diceValues.blue },
-        { color: "blue", value: diceValues.white2 + diceValues.blue }
-      );
-    }
-    whiteAndColorSums.forEach(({ color, value }) => {
-      let bgClass = "";
-      switch (color) {
-        case "red":
-          bgClass = "bg-red-500 text-white";
-          break;
-        case "yellow":
-          bgClass = "bg-yellow-300 text-black";
-          break;
-        case "green":
-          bgClass = "bg-green-500 text-white";
-          break;
-        case "blue":
-          bgClass = "bg-blue-500 text-white";
-          break;
-      }
-      const colorOption = createOptionElement(
-        value,
-        color,
-        `${bgClass} border border-gray-300`
-      );
-      optionsContainer.appendChild(colorOption);
-    });
-  }
-  */
+  ...
 }
 
 function createOptionElement(value, color, additionalClasses = "") {
-  // Since we are removing marking options, let's just comment out the body
-  /*
-  const option = document.createElement("div");
-  option.className = `w-12 h-12 flex items-center justify-center text-lg font-bold rounded cursor-pointer ${additionalClasses}`;
-  option.textContent = value;
-  return option;
-  */
+  ...
 }
+*/
 
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -325,13 +274,24 @@ function updateGameUI(newState) {
     gameScreen.classList.remove("hidden");
   }
   const currentPlayerName = document.getElementById("player-name").value;
-  const isActivePlayer =
-    gameState.turnOrder &&
-    gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName;
+  const activePlayerName =
+    gameState.turnOrder && gameState.turnOrder.length > 0
+      ? gameState.turnOrder[gameState.activePlayerIndex]
+      : null;
+  const isActivePlayer = activePlayerName === currentPlayerName;
+
+  // Check if the active player changed from last update
+  if (activePlayerName !== lastActivePlayer) {
+    // If the new active player is me, show overlay
+    if (isActivePlayer && !gameState.gameOver) {
+      // Only show if the game is ongoing
+      showTurnOverlay(currentPlayerName);
+    }
+    lastActivePlayer = activePlayerName;
+  }
 
   if (gameState.turnOrder && gameState.turnOrder.length > 0) {
-    const activePlayer = gameState.turnOrder[gameState.activePlayerIndex];
-    updateCurrentTurnRow(activePlayer, gameState.turnOrder);
+    updateCurrentTurnRow(activePlayerName, gameState.turnOrder);
   }
 
   if (gameState.diceValues) {
@@ -435,7 +395,6 @@ function updateGameUI(newState) {
     }
   }
 
-  // Commenting out the logic for marking options
   /*
   const optionsContainer = document.getElementById("marking-options-list");
   if (gameState.diceValues && gameState.started && !gameState.gameOver) {

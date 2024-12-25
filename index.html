@@ -13,8 +13,6 @@
   <body
     class="bg-gray-200 min-h-screen p-6 flex flex-col items-center text-center font-sans"
   >
-    <h1 class="text-3xl font-bold mb-6">Qwixx Online</h1>
-
     <div
       id="join-game-screen"
       class="bg-white rounded shadow p-4 max-w-md w-full space-y-4 mb-8"
@@ -136,8 +134,6 @@
         <div id="current-turn-row" class="flex items-center space-x-2"></div>
       </div>
 
-      <h2 class="text-2xl font-bold text-center mb-4">Your Score Sheet</h2>
-
       <div class="score-sheet mt-2">
         <div id="red-row"></div>
         <div id="yellow-row"></div>
@@ -226,6 +222,22 @@
         Game Over!
       </div>
       <div id="scoreboard" class="mt-4 hidden"></div>
+    </div>
+
+    <!-- TURN POPUP OVERLAY -->
+    <div
+      id="turn-overlay"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden"
+    >
+      <div class="bg-white rounded p-8 text-center">
+        <h2 id="turn-message" class="text-xl font-bold mb-4"></h2>
+        <button
+          id="turn-confirm"
+          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
+        >
+          Start Turn
+        </button>
+      </div>
     </div>
 
     <script src="script.js"></script>
