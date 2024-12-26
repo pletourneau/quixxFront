@@ -4,31 +4,24 @@ let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
 
-// Turn overlay logic
-function showTurnOverlay(playerName) {
-  console.log("Showing turn overlay for:", playerName);
-  const overlay = document.getElementById("turn-overlay");
-  const message = document.getElementById("turn-message");
-  message.textContent = `${playerName}'s turn!`;
-  overlay.classList.remove("hidden");
-}
-
-// Hide overlay on "Start Turn" click
-document.getElementById("turn-confirm").addEventListener("click", () => {
-  document.getElementById("turn-overlay").classList.add("hidden");
-});
-
+/**
+ * Send a "joinRoom" action to the server
+ */
 function joinRoom(passcode, playerName) {
   console.log("Sending joinRoom:", passcode, playerName);
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
 
+// When socket opens, generate rows + penalty boxes
 ws.onopen = () => {
   console.log("WebSocket connected. Generating rows/penalties...");
   generateScoreRows();
   generatePenaltyBoxes();
 };
 
+/**
+ * Called by "Join Game" button
+ */
 function joinGame() {
   const passcode = document.getElementById("passcode").value;
   const playerName = document.getElementById("player-name").value;
@@ -39,6 +32,9 @@ function joinGame() {
   }
 }
 
+/**
+ * Called by "Start Game" button
+ */
 function startGame() {
   if (isRoomCreator) {
     const players = Array.from(
@@ -52,16 +48,21 @@ function startGame() {
   }
 }
 
+/**
+ * Helper to send an action over WebSocket
+ */
 function sendAction(type, payload = {}) {
   if (ws.readyState === WebSocket.OPEN) {
     console.log("Sending action:", type, payload);
-    const message = { type, ...payload };
-    ws.send(JSON.stringify(message));
+    ws.send(JSON.stringify({ type, ...payload }));
   } else {
     console.warn("WebSocket not open. Cannot send action:", type);
   }
 }
 
+/**
+ * Generate the 4 color rows
+ */
 function generateScoreRows() {
   const rowsConfig = {
     red: {
@@ -108,6 +109,7 @@ function generateScoreRows() {
       const lastNumber = numbers[numbers.length - 1];
       const normalNumbers = numbers.slice(0, -1);
 
+      // Create cells for each number
       normalNumbers.forEach((num) => {
         const cell = document.createElement("div");
         cell.textContent = num;
@@ -118,7 +120,7 @@ function generateScoreRows() {
         rowContainer.appendChild(cell);
       });
 
-      // Final Section
+      // Final number + lock cell
       const finalSection = document.createElement("div");
       finalSection.className = "flex flex-col items-center space-y-1";
 
@@ -152,6 +154,9 @@ function generateScoreRows() {
   });
 }
 
+/**
+ * Generate 4 penalty boxes
+ */
 function generatePenaltyBoxes() {
   const penaltiesContainer = document.getElementById("penalties-container");
   penaltiesContainer.innerHTML = "";
@@ -163,6 +168,9 @@ function generatePenaltyBoxes() {
   }
 }
 
+/**
+ * Attempt to mark a cell
+ */
 function attemptMarkCell(cell, color, number) {
   if (!gameState || !gameState.diceRolledThisTurn) {
     alert("You cannot mark before dice are rolled this turn.");
@@ -172,6 +180,9 @@ function attemptMarkCell(cell, color, number) {
   sendAction("markCell", { playerName: currentPlayerName, color, number });
 }
 
+/**
+ * Roll Dice action
+ */
 function rollDice() {
   const currentPlayerName = document.getElementById("player-name").value;
   if (
@@ -188,6 +199,9 @@ function rollDice() {
   }
 }
 
+/**
+ * End Turn action
+ */
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
   sendAction("endTurn", { playerName: currentPlayerName });
@@ -197,11 +211,17 @@ function endTurn() {
   }
 }
 
+/**
+ * Reset Turn action
+ */
 function resetTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
   sendAction("resetTurnForPlayer", { playerName: currentPlayerName });
 }
 
+/**
+ * Shuffle helper for random turn order
+ */
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -209,6 +229,9 @@ function shuffle(array) {
   }
 }
 
+/**
+ * Display final scoreboard
+ */
 function displayScoreboard(scoreboard) {
   const scoreboardDiv = document.getElementById("scoreboard");
   scoreboardDiv.innerHTML =
@@ -249,7 +272,9 @@ function displayScoreboard(scoreboard) {
   scoreboardDiv.classList.remove("hidden");
 }
 
-// Update the row that shows turn order
+/**
+ * Update the turn order row
+ */
 function updateCurrentTurnRow(activePlayer, turnOrder) {
   const row = document.getElementById("current-turn-row");
   row.innerHTML = "";
@@ -270,46 +295,37 @@ function updateCurrentTurnRow(activePlayer, turnOrder) {
 }
 
 /**
- * Main UI update triggered by "gameState" messages
+ * Main UI update function triggered by "gameState" messages
  */
 function updateGameUI(newState) {
   console.log("Received gameState:", newState);
   gameState = newState;
 
+  // Switch screens if the game has started
   const joinGameScreen = document.getElementById("join-game-screen");
   const gameScreen = document.getElementById("game-screen");
-
-  // If started, hide join screen
   if (gameState.started) {
     joinGameScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
   }
 
   const currentPlayerName = document.getElementById("player-name").value;
-  console.log("Current player:", currentPlayerName);
 
   // Identify the active player
-  const activePlayerIndex = gameState.activePlayerIndex;
   let activePlayerName = null;
   if (gameState.turnOrder && gameState.turnOrder.length > 0) {
-    activePlayerName = gameState.turnOrder[activePlayerIndex];
+    activePlayerName = gameState.turnOrder[gameState.activePlayerIndex];
   }
-  console.log("Active player is:", activePlayerName);
+  console.log(
+    "Current player:",
+    currentPlayerName,
+    "Active player:",
+    activePlayerName
+  );
 
   const isActivePlayer = activePlayerName === currentPlayerName;
 
-  // If it's a new turn (no one ended turn, dice not rolled) and I'm the active player => show overlay
-  if (
-    !gameState.gameOver &&
-    isActivePlayer &&
-    gameState.turnEndedBy &&
-    gameState.turnEndedBy.length === 0 &&
-    gameState.diceRolledThisTurn === false
-  ) {
-    showTurnOverlay(currentPlayerName);
-  }
-
-  // Update turn order
+  // Update turn order display
   if (gameState.turnOrder && gameState.turnOrder.length > 0) {
     updateCurrentTurnRow(activePlayerName, gameState.turnOrder);
   }
@@ -321,7 +337,7 @@ function updateGameUI(newState) {
       if (diceElement) diceElement.textContent = value;
     });
   } else {
-    // Fallback dice
+    // If no diceValues yet, show placeholders
     const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
     diceIds.forEach((dice) => {
       const diceElement = document.getElementById(dice);
@@ -331,7 +347,7 @@ function updateGameUI(newState) {
     });
   }
 
-  // Update boards
+  // Update the board for the local player
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -359,7 +375,7 @@ function updateGameUI(newState) {
     });
   }
 
-  // Players Info
+  // Update player list
   const playerInfo = document.getElementById("player-info");
   if (gameState.players) {
     playerInfo.innerHTML = `<h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>`;
@@ -374,7 +390,7 @@ function updateGameUI(newState) {
       } else {
         playerElement.style.color = "black";
       }
-      // If turn ended => line-through
+      // If they've ended turn => line-through
       if (
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(player.name)
@@ -388,6 +404,7 @@ function updateGameUI(newState) {
   // Roll Dice button
   const rollDiceButton = document.querySelector("#roll-dice-btn");
   if (rollDiceButton) {
+    // If game not started or over, disable
     if (!gameState.started || gameState.gameOver) {
       rollDiceButton.disabled = true;
     } else {
@@ -423,7 +440,7 @@ function updateGameUI(newState) {
     }
   }
 
-  // Penalties
+  // Update penalties for local player
   if (
     gameState.penalties &&
     gameState.penalties[currentPlayerName] !== undefined
@@ -460,7 +477,7 @@ function updateGameUI(newState) {
     });
   }
 
-  // Game Over?
+  // Check for game over
   const gameOverMessage = document.getElementById("game-over-message");
   if (gameState.gameOver) {
     if (gameOverMessage) gameOverMessage.classList.remove("hidden");
@@ -472,7 +489,9 @@ function updateGameUI(newState) {
   }
 }
 
-// Listen for messages from server
+/**
+ * Listen for messages from the server
+ */
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
   console.log("onmessage received:", data);
@@ -490,7 +509,7 @@ ws.onmessage = (event) => {
     alert(`You have ${data.status} the room: ${data.room}`);
     currentRoom = data.room;
   } else if (data.type === "newGame") {
-    // This means the server created a new room with YOU as the roomCreator
+    // You are the room creator
     console.log("Received newGame. You are the room creator.");
     isRoomCreator = true;
     currentRoom = data.room;

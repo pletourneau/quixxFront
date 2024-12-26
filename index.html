@@ -13,7 +13,7 @@
   <body
     class="bg-gray-200 min-h-screen p-6 flex flex-col items-center text-center font-sans"
   >
-    <!-- JOIN GAME SCREEN -->
+    <!-- JOIN SCREEN -->
     <div
       id="join-game-screen"
       class="bg-white rounded shadow p-4 max-w-md w-full space-y-4 mb-8"
@@ -60,7 +60,6 @@
       id="game-screen"
       class="w-full max-w-4xl bg-white rounded shadow p-4 space-y-6 hidden"
     >
-      <!-- Dice Container -->
       <div class="flex justify-center gap-4 mt-4" id="dice-container">
         <div
           class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
@@ -100,6 +99,7 @@
         </div>
       </div>
 
+      <!-- Buttons -->
       <div class="flex space-x-4 justify-center">
         <button
           onclick="rollDice()"
@@ -122,13 +122,12 @@
         </button>
       </div>
 
-      <!-- Turn Order Display -->
       <div class="flex items-center justify-center space-x-4">
         <h3 class="text-xl font-semibold">Turn Order</h3>
         <div id="current-turn-row" class="flex items-center space-x-2"></div>
       </div>
 
-      <!-- Score Sheet Rows -->
+      <!-- Score Rows -->
       <div class="score-sheet mt-2">
         <div id="red-row"></div>
         <div id="yellow-row"></div>
@@ -222,22 +221,7 @@
       <div id="scoreboard" class="mt-4 hidden"></div>
     </div>
 
-    <!-- TURN POPUP OVERLAY -->
-    <div
-      id="turn-overlay"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden"
-    >
-      <div class="bg-white rounded p-8 text-center">
-        <h2 id="turn-message" class="text-xl font-bold mb-4"></h2>
-        <button
-          id="turn-confirm"
-          class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
-        >
-          Start Turn
-        </button>
-      </div>
-    </div>
-
+    <!-- We have removed the pop-up overlay entirely -->
     <script src="script.js"></script>
   </body>
 </html>
