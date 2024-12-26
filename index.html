@@ -13,6 +13,7 @@
   <body
     class="bg-gray-200 min-h-screen p-6 flex flex-col items-center text-center font-sans"
   >
+    <!-- JOIN GAME SCREEN -->
     <div
       id="join-game-screen"
       class="bg-white rounded shadow p-4 max-w-md w-full space-y-4 mb-8"
@@ -54,10 +55,12 @@
       </div>
     </div>
 
+    <!-- MAIN GAME SCREEN -->
     <div
       id="game-screen"
       class="w-full max-w-4xl bg-white rounded shadow p-4 space-y-6 hidden"
     >
+      <!-- Dice Container -->
       <div class="flex justify-center gap-4 mt-4" id="dice-container">
         <div
           class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
@@ -97,16 +100,6 @@
         </div>
       </div>
 
-      <!--
-      <div id="marking-options" class="mt-4">
-        <h3 class="text-xl font-semibold mb-2">Marking Options</h3>
-        <ul
-          id="marking-options-list"
-          class="flex flex-wrap gap-2 justify-center"
-        ></ul>
-      </div>
-      -->
-
       <div class="flex space-x-4 justify-center">
         <button
           onclick="rollDice()"
@@ -129,11 +122,13 @@
         </button>
       </div>
 
+      <!-- Turn Order Display -->
       <div class="flex items-center justify-center space-x-4">
         <h3 class="text-xl font-semibold">Turn Order</h3>
         <div id="current-turn-row" class="flex items-center space-x-2"></div>
       </div>
 
+      <!-- Score Sheet Rows -->
       <div class="score-sheet mt-2">
         <div id="red-row"></div>
         <div id="yellow-row"></div>
@@ -141,6 +136,7 @@
         <div id="blue-row"></div>
       </div>
 
+      <!-- Penalties -->
       <div class="penalties-section text-center">
         <h3 class="font-bold text-lg mb-2">Your Penalties:</h3>
         <div
@@ -149,6 +145,7 @@
         ></div>
       </div>
 
+      <!-- Scoring Reference -->
       <div class="mt-4 text-center">
         <h3 class="font-bold text-lg mb-2">Scoring Reference</h3>
         <div class="flex justify-center flex-wrap gap-2">
@@ -215,6 +212,7 @@
         </div>
       </div>
 
+      <!-- Game Over Section -->
       <div
         id="game-over-message"
         class="text-2xl font-bold text-red-600 mt-4 hidden"
