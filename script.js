@@ -65,13 +65,7 @@ function sendAction(type, payload = {}) {
  */
 function generateScoreRows() {
   const rowsConfig = {
-    red: {
-      start: 2,
-      end: 12,
-      lock: "LOCK",
-      bg: "bg-red-500",
-      ascending: true,
-    },
+    red: { start: 2, end: 12, lock: "LOCK", bg: "bg-red-500", ascending: true },
     yellow: {
       start: 2,
       end: 12,
@@ -120,7 +114,7 @@ function generateScoreRows() {
         rowContainer.appendChild(cell);
       });
 
-      // Final number + lock cell
+      // Final section with lastNumber & lock
       const finalSection = document.createElement("div");
       finalSection.className = "flex flex-col items-center space-y-1";
 
@@ -480,18 +474,19 @@ function updateGameUI(newState) {
   // Check for game over
   const gameOverMessage = document.getElementById("game-over-message");
   if (gameState.gameOver) {
-    if (gameOverMessage) gameOverMessage.classList.remove("hidden");
+    if (gameOverMessage) {
+      gameOverMessage.classList.remove("hidden");
+    }
     if (gameState.scoreboard) {
       displayScoreboard(gameState.scoreboard);
     }
   } else {
-    if (gameOverMessage) gameOverMessage.classList.add("hidden");
+    if (gameOverMessage) {
+      gameOverMessage.classList.add("hidden");
+    }
   }
 }
 
-/**
- * Listen for messages from the server
- */
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
   console.log("onmessage received:", data);
@@ -500,16 +495,15 @@ ws.onmessage = (event) => {
     updateGameUI(data);
   } else if (data.type === "error") {
     alert(data.message);
-    // Re-enable endTurn in case of error
     const endTurnButton = document.querySelector("button[onclick='endTurn()']");
     if (endTurnButton) {
       endTurnButton.disabled = false;
     }
   } else if (data.type === "roomStatus") {
+    // FIX: use backticks for string interpolation
     alert(`You have ${data.status} the room: ${data.room}`);
     currentRoom = data.room;
   } else if (data.type === "newGame") {
-    // You are the room creator
     console.log("Received newGame. You are the room creator.");
     isRoomCreator = true;
     currentRoom = data.room;

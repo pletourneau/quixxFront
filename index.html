@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jumping Jello Time Patrol</title>
     <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.4/dist/tailwind.min.css"
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.7/dist/tailwind.min.css"
       rel="stylesheet"
     />
     <link href="output.css" rel="stylesheet" />
@@ -14,50 +14,9 @@
     class="bg-gray-200 min-h-screen p-6 flex flex-col items-center text-center font-sans"
   >
     <!-- JOIN SCREEN -->
-    <!-- <div
-      id="join-game-screen"
-      class="bg-white rounded shadow p-4 max-w-md w-full space-y-4 mb-8"
-    >
-      <h2 class="text-2xl font-semibold">Join a Game</h2>
-      <div class="flex flex-col space-y-2">
-        <input
-          type="text"
-          id="player-name"
-          placeholder="Enter your name"
-          class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-        <input
-          type="text"
-          id="passcode"
-          placeholder="Enter game passcode"
-          class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-      <button
-        onclick="joinGame()"
-        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
-      >
-        Join Game
-      </button>
-      <div id="room-name" class="text-gray-700"></div>
-      <div id="player-info" class="player-list text-left mt-4">
-        <h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>
-      </div>
-      <div>
-        <button
-          id="start-game"
-          style="display: none"
-          onclick="startGame()"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
-        >
-          Start Game
-        </button>
-      </div>
-    </div> -->
-    <!-- JOIN SCREEN -->
     <div
       id="join-game-screen"
-      class="bg-gradient-to-r from-orange-200 to-orange-400 text-black rounded-xl shadow-2xl p-6 max-w-md w-full space-y-4 mb-10"
+      class="bg-gradient-to-r from-orange-300 to-orange-500 text-black rounded-xl shadow-2xl p-6 max-w-md w-full space-y-4 mb-10"
     >
       <h2 class="text-3xl font-bold text-orange-900 mb-4">Join a Game</h2>
       <div class="flex flex-col space-y-2">
@@ -266,7 +225,6 @@
       <div id="scoreboard" class="mt-4 hidden"></div>
     </div>
 
-    <!-- We have removed the pop-up overlay entirely -->
     <script src="script.js"></script>
   </body>
 </html>
