@@ -230,7 +230,7 @@ function generateScoreRows() {
     finalNumberCell.textContent = lastNumber;
     finalNumberCell.setAttribute("data-original-number", lastNumber);
     finalNumberCell.className =
-      "w-10 h-10 bg-white border border-gray-300 flex items-center justify-center font-bold text-sm cursor-pointer";
+      "w-10 h-10 bg-white border border-gray-300 flex items-center justify-center font-bold text-sm cursor-pointer ml-2";
     finalNumberCell.addEventListener("click", () =>
       attemptMarkCell(finalNumberCell, color, lastNumber)
     );
