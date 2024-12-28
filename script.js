@@ -663,6 +663,7 @@ function updateGameUI(newState) {
     // Show game over screen
     if (gameOverScreen) {
       gameOverScreen.classList.remove("hidden");
+      console.log("remove hidden class");
     }
     // Display scoreboard in #scoreboard
     if (gameState.scoreboard) {
