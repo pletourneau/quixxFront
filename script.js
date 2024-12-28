@@ -56,11 +56,6 @@ function sendAction(type, payload = {}) {
 }
 
 // ==================== RANDOM "QUIXX" BACKGROUND LOGIC ====================
-//
-// We'll generate random text elements that say "QUIXX" in
-// various fonts/colors, positioned randomly behind the UI.
-//
-// The container is #quixx-random-bg in the HTML.
 
 const QUIXX_FONTS = [
   "'Comic Sans MS', cursive",
@@ -84,8 +79,8 @@ function fillQuixxBackground() {
   for (let i = 0; i < QUIXX_COUNT; i++) {
     const span = document.createElement("span");
 
-    // For more text, let's do "QUIXX   QUIXX   " per line
-    span.textContent = "QUIXX   QUIXX   ";
+    // For more text, let's do "QUIXX  " per line
+    span.textContent = "QUIXX  ";
 
     // Random font from 4 choices
     const font = QUIXX_FONTS[Math.floor(Math.random() * QUIXX_FONTS.length)];
