@@ -79,7 +79,7 @@ function fillQuixxBackground() {
   for (let i = 0; i < QUIXX_COUNT; i++) {
     const span = document.createElement("span");
 
-    // For more text, let's do "QUIXX  " per line
+    // We'll do "QUIXX  " to space them out
     span.textContent = "QUIXX  ";
 
     // Random font from 4 choices
@@ -87,9 +87,9 @@ function fillQuixxBackground() {
     // Random color from 4 choices
     const color = QUIXX_COLORS[Math.floor(Math.random() * QUIXX_COLORS.length)];
 
-    // Random position
-    const x = Math.random() * 100; // 0..100 in viewport width
-    const y = Math.random() * 100; // 0..100 in viewport height
+    // Random position (vw, vh)
+    const x = Math.random() * 100;
+    const y = Math.random() * 100;
     const rotate = Math.floor(Math.random() * 360);
 
     // Style it
@@ -109,15 +109,15 @@ function fillQuixxBackground() {
 ws.onopen = () => {
   console.log("WebSocket connected. Generating rows/penalties...");
 
-  // 1) Generate your Qwixx UI
+  // 1) Generate Qwixx UI
   generateScoreRows();
   generatePenaltyBoxes();
 
-  // 2) Also fill the random QUIXX background
+  // 2) Fill the random QUIXX background
   fillQuixxBackground();
 };
 
-// ==================== MESSAGE EVENT (STATE UPDATES) ====================
+// ==================== WEBSOCKET ONMESSAGE: STATE UPDATES ====================
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
   console.log("onmessage received:", data);
@@ -126,7 +126,7 @@ ws.onmessage = (event) => {
     updateGameUI(data);
   } else if (data.type === "error") {
     alert(data.message);
-    // Re-enable End Turn button if it was disabled
+    // Re-enable End Turn if we disabled it
     const endTurnButton = document.querySelector("button[onclick='endTurn()']");
     if (endTurnButton) {
       endTurnButton.disabled = false;
@@ -146,19 +146,19 @@ ws.onmessage = (event) => {
 
 // ==================== QWIXX UI FUNCTIONS ====================
 //
-// 1. generateScoreRows()
-// 2. generatePenaltyBoxes()
-// 3. attemptMarkCell()
-// 4. rollDice()
-// 5. endTurn()
-// 6. resetTurn()
-// 7. shuffle()
-// 8. displayScoreboard()
-// 9. updateCurrentTurnRow()
-// 10. updateGameUI()
+// 1) generateScoreRows()
+// 2) generatePenaltyBoxes()
+// 3) attemptMarkCell()
+// 4) rollDice()
+// 5) endTurn()
+// 6) resetTurn()
+// 7) shuffle()
+// 8) displayScoreboard() - for final only, or we can do in-game
+// 9) updateCurrentTurnRow()
+// 10) updateGameUI()
 
 /**
- * Generate the 4 color rows (red, yellow, green, blue) for the Qwixx board
+ * Generate 4 color rows (red, yellow, green, blue)
  */
 function generateScoreRows() {
   const rowsConfig = {
@@ -190,11 +190,14 @@ function generateScoreRows() {
     const rowContainer = document.getElementById(`${color}-row`);
     if (!rowContainer) return;
 
+    // Clear row first
     rowContainer.innerHTML = "";
-    const { start, end, lock, bg } = rowsConfig[color];
+
+    const { start, end, lock, bg, ascending } = rowsConfig[color];
+    // We set inline-flex, some spacing, etc.
     rowContainer.className = `inline-flex items-center space-x-1 ${bg} rounded-lg px-5 py-5 mb-2 max-w-min`;
 
-    // Ascending if start < end, else descending
+    // Collect numbers
     const step = start < end ? 1 : -1;
     const numbers = [];
     for (let i = start; i !== end + step; i += step) {
@@ -203,7 +206,7 @@ function generateScoreRows() {
     const lastNumber = numbers[numbers.length - 1];
     const normalNumbers = numbers.slice(0, -1);
 
-    // Create each normal cell
+    // Create normal cells
     normalNumbers.forEach((num) => {
       const cell = document.createElement("div");
       cell.textContent = num;
@@ -214,10 +217,11 @@ function generateScoreRows() {
       rowContainer.appendChild(cell);
     });
 
-    // Final number + lock cell
+    // The final number & lock
     const finalSection = document.createElement("div");
     finalSection.className = "relative inline-flex items-center";
 
+    // The label "At least 5 X's"
     const label = document.createElement("span");
     label.className =
       "absolute text-xs font-semibold text-white bottom-full left-1/2 transform -translate-x-1/2 mb-1 whitespace-nowrap";
@@ -227,6 +231,7 @@ function generateScoreRows() {
     const finalRow = document.createElement("div");
     finalRow.className = "flex space-x-1 items-center";
 
+    // Final number cell
     const finalNumberCell = document.createElement("div");
     finalNumberCell.textContent = lastNumber;
     finalNumberCell.setAttribute("data-original-number", lastNumber);
@@ -237,6 +242,7 @@ function generateScoreRows() {
     );
     finalRow.appendChild(finalNumberCell);
 
+    // Lock cell
     const lockCell = document.createElement("div");
     lockCell.textContent = lock;
     lockCell.className =
@@ -249,7 +255,7 @@ function generateScoreRows() {
 }
 
 /**
- * Generate the 4 penalty boxes
+ * Generate 4 penalty boxes
  */
 function generatePenaltyBoxes() {
   const penaltiesContainer = document.getElementById("penalties-container");
@@ -286,9 +292,7 @@ function rollDice() {
     gameState.turnOrder &&
     gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName
   ) {
-    if (!gameState.started || gameState.gameOver) {
-      return;
-    }
+    if (!gameState.started || gameState.gameOver) return;
     sendAction("rollDice");
   } else {
     alert("It's not your turn to roll the dice.");
@@ -301,6 +305,7 @@ function rollDice() {
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
   sendAction("endTurn", { playerName: currentPlayerName });
+
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     endTurnButton.disabled = true;
@@ -327,10 +332,12 @@ function shuffle(array) {
 }
 
 /**
- * Display final scoreboard
+ * The final scoreboard is displayed on the game-over screen
+ * so we might only do a small helper for that if needed.
+ * But let's keep a function in case we want it.
  */
-function displayScoreboard(scoreboard) {
-  const scoreboardDiv = document.getElementById("scoreboard");
+function displayScoreboard(scoreboard, containerId = "scoreboard") {
+  const scoreboardDiv = document.getElementById(containerId);
   if (!scoreboardDiv) return;
 
   scoreboardDiv.innerHTML =
@@ -398,7 +405,7 @@ function updateCurrentTurnRow(activePlayer, turnOrder) {
 }
 
 /**
- * The main UI update function triggered by "gameState" messages
+ * The main UI update function (called whenever we get "gameState")
  */
 function updateGameUI(newState) {
   console.log("Received gameState:", newState);
@@ -406,11 +413,19 @@ function updateGameUI(newState) {
 
   const joinGameScreen = document.getElementById("join-game-screen");
   const gameScreen = document.getElementById("game-screen");
+  const gameOverScreen = document.getElementById("game-over-screen");
 
-  // If the game has started, switch screens
-  if (gameState.started) {
-    if (joinGameScreen) joinGameScreen.classList.add("hidden");
-    if (gameScreen) gameScreen.classList.remove("hidden");
+  // If the game has started, hide joinGame screen, show game screen (unless game is over)
+  if (gameState.started && joinGameScreen) {
+    joinGameScreen.classList.add("hidden");
+  }
+  if (gameScreen && gameState.started && !gameState.gameOver) {
+    gameScreen.classList.remove("hidden");
+  }
+
+  // If the game is not over, hide #game-over-screen
+  if (gameOverScreen && !gameState.gameOver) {
+    gameOverScreen.classList.add("hidden");
   }
 
   const currentPlayerName = document.getElementById("player-name").value;
@@ -429,7 +444,7 @@ function updateGameUI(newState) {
 
   const isActivePlayer = activePlayerName === currentPlayerName;
 
-  // Update turn order display
+  // Update turn order
   if (gameState.turnOrder && gameState.turnOrder.length > 0) {
     updateCurrentTurnRow(activePlayerName, gameState.turnOrder);
   }
@@ -444,7 +459,9 @@ function updateGameUI(newState) {
     const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
     diceIds.forEach((dice) => {
       const diceElement = document.getElementById(dice);
-      if (diceElement) diceElement.textContent = "🎲";
+      if (diceElement) {
+        diceElement.textContent = "🎲";
+      }
     });
   }
 
@@ -484,14 +501,14 @@ function updateGameUI(newState) {
       playerElement.classList.add("player");
       playerElement.textContent = player.name;
 
-      // Mark disconnected players in red
+      // If disconnected => red
       if (player.connected === false) {
         playerElement.style.color = "red";
       } else {
         playerElement.style.color = "black";
       }
 
-      // Strike-through if they've ended turn
+      // If ended turn => line-through
       if (
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(player.name)
@@ -502,7 +519,7 @@ function updateGameUI(newState) {
     });
   }
 
-  // Roll Dice button logic
+  // Roll Dice button
   const rollDiceButton = document.getElementById("roll-dice-btn");
   if (rollDiceButton) {
     if (!gameState.started || gameState.gameOver) {
@@ -518,7 +535,7 @@ function updateGameUI(newState) {
     }
   }
 
-  // End Turn button logic
+  // End Turn button
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     if (!gameState.started || gameState.gameOver) {
@@ -529,7 +546,6 @@ function updateGameUI(newState) {
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(currentPlayerName);
       endTurnButton.disabled = alreadyEnded;
-
       if (alreadyEnded) {
         endTurnButton.classList.add("opacity-50");
       } else {
@@ -538,7 +554,7 @@ function updateGameUI(newState) {
     }
   }
 
-  // Reset Turn button logic
+  // Reset Turn button
   const resetTurnButton = document.querySelector(
     "button[onclick='resetTurn()']"
   );
@@ -551,7 +567,6 @@ function updateGameUI(newState) {
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(currentPlayerName);
       resetTurnButton.disabled = alreadyEnded || !gameState.diceRolledThisTurn;
-
       if (resetTurnButton.disabled) {
         resetTurnButton.classList.add("opacity-50");
       } else {
@@ -570,11 +585,9 @@ function updateGameUI(newState) {
     if (penaltiesContainer) {
       for (let i = 0; i < 4; i++) {
         const box = penaltiesContainer.children[i];
-        // Remove gray & line-through first
         box.classList.remove("bg-gray-300", "line-through");
         box.textContent = "";
         if (i < penaltyCount) {
-          // Mark penalty with gray background (no strikethrough)
           box.classList.add("bg-gray-300");
           box.textContent = "X";
         }
@@ -583,8 +596,7 @@ function updateGameUI(newState) {
   }
 
   // Row-locking logic
-  // If row is locked by *someone*, we show "🔒".
-  // If locked by *this* player => maybe a different color, etc.
+  // If locked by some user, we set text to "🔒", else "LOCK"
   if (gameState.lockedRows) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -592,22 +604,20 @@ function updateGameUI(newState) {
       const lockCell = row.querySelector(".w-12.h-10");
       if (!lockCell) return;
 
-      const lockedBy = gameState.lockedRows[color];
-      // lockedBy can be null or a player's name
-
+      const lockedBy = gameState.lockedRows[color]; // null or playerName
       if (lockedBy === null) {
-        // Not locked
+        // not locked
         lockCell.textContent = "LOCK";
         lockCell.classList.remove("bg-gray-400", "text-white");
         lockCell.classList.remove("bg-white", "text-black");
         lockCell.classList.add("bg-white", "text-black");
       } else if (lockedBy === currentPlayerName) {
-        // I locked it => show gray lock
+        // locked by me => gray
         lockCell.textContent = "🔒";
         lockCell.classList.remove("bg-white", "text-black");
         lockCell.classList.add("bg-gray-400", "text-white");
       } else {
-        // Some other player locked => white lock
+        // locked by someone else => white
         lockCell.textContent = "🔒";
         lockCell.classList.remove("bg-gray-400", "text-white");
         lockCell.classList.remove("bg-white", "text-black");
@@ -617,15 +627,62 @@ function updateGameUI(newState) {
   }
 
   // Check for game over
-  const gameOverMessage = document.getElementById("game-over-message");
   if (gameState.gameOver) {
-    if (gameOverMessage) gameOverMessage.classList.remove("hidden");
-
-    // If there's a scoreboard, display it
+    // Hide main game screen
+    if (gameScreen) {
+      gameScreen.classList.add("hidden");
+    }
+    // Show the game over screen
+    if (gameOverScreen) {
+      gameOverScreen.classList.remove("hidden");
+    }
+    // If we have final scoreboard, show it in #game-over-scoreboard
     if (gameState.scoreboard) {
-      displayScoreboard(gameState.scoreboard);
+      const gameOverScoreboardDiv = document.getElementById(
+        "game-over-scoreboard"
+      );
+      if (gameOverScoreboardDiv) {
+        // We'll build HTML or reuse the displayScoreboard approach:
+        gameOverScoreboardDiv.innerHTML = ""; // clear it
+        let tableHtml = `<h3 class="text-xl font-bold mb-2">Final Scores:</h3>
+          <table class="mx-auto border-collapse border border-black"><tr>`;
+        [
+          "Player",
+          "Red",
+          "Yellow",
+          "Green",
+          "Blue",
+          "Penalties",
+          "Total",
+        ].forEach((h) => {
+          tableHtml += `<th class="border border-black px-2 py-1">${h}</th>`;
+        });
+        tableHtml += "</tr>";
+
+        gameState.scoreboard.forEach((s) => {
+          tableHtml += "<tr>";
+          [
+            s.player,
+            s.redScore,
+            s.yellowScore,
+            s.greenScore,
+            s.blueScore,
+            s.penaltiesScore,
+            s.totalScore,
+          ].forEach((val) => {
+            tableHtml += `<td class="border border-black px-2 py-1">${val}</td>`;
+          });
+          tableHtml += "</tr>";
+        });
+        tableHtml += "</table>";
+
+        gameOverScoreboardDiv.innerHTML = tableHtml;
+      }
     }
   } else {
-    if (gameOverMessage) gameOverMessage.classList.add("hidden");
+    // Not game over => hide #game-over-screen
+    if (gameOverScreen) {
+      gameOverScreen.classList.add("hidden");
+    }
   }
 }

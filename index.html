@@ -17,6 +17,7 @@
         margin: 0;
       }
 
+      /* This is your container for printing random "QUIXX" backgrounds */
       #quixx-random-bg {
         position: fixed;
         top: 0;
@@ -27,7 +28,7 @@
         pointer-events: none; /* let clicks pass through */
         overflow: hidden;
 
-        /* Gray gradient background (light -> medium) */
+        /* Example: a gradient from #ffb37a to #ff600b */
         background: linear-gradient(to bottom, #ffb37a, #ff600b);
       }
     </style>
@@ -91,6 +92,7 @@
       class="w-full max-w-4xl bg-white rounded shadow p-4 space-y-6 hidden"
     >
       <div class="flex justify-center gap-4 mt-4" id="dice-container">
+        <!-- DICE elements -->
         <div
           class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
           id="white1"
@@ -129,7 +131,7 @@
         </div>
       </div>
 
-      <!-- Buttons -->
+      <!-- Buttons for rolling, ending turn, resetting turn -->
       <div class="flex space-x-4 justify-center">
         <button
           onclick="rollDice()"
@@ -152,6 +154,7 @@
         </button>
       </div>
 
+      <!-- Turn Order Display -->
       <div class="flex items-center justify-center space-x-4">
         <h3 class="text-xl font-semibold">Turn Order</h3>
         <div id="current-turn-row" class="flex items-center space-x-2"></div>
@@ -178,6 +181,7 @@
       <div class="mt-4 text-center">
         <h3 class="font-bold text-lg mb-2">Scoring Reference</h3>
         <div class="flex justify-center flex-wrap gap-2">
+          <!-- Each small reference cell -->
           <div
             class="flex flex-col items-center text-sm border border-black px-2 py-1"
           >
@@ -240,15 +244,24 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Game Over Section -->
-      <div
-        id="game-over-message"
-        class="text-2xl font-bold text-red-600 mt-4 hidden"
+    <!-- GAME OVER SCREEN (hidden by default) -->
+    <div
+      id="game-over-screen"
+      class="hidden bg-white rounded-xl shadow-2xl p-6 w-full max-w-md space-y-4"
+    >
+      <h2 class="text-3xl font-bold text-red-600 mb-4">Game Over!</h2>
+
+      <!-- We'll place the scoreboard inside here -->
+      <div id="game-over-scoreboard" class="text-center"></div>
+
+      <button
+        onclick="location.reload()"
+        class="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition font-semibold shadow"
       >
-        Game Over!
-      </div>
-      <div id="scoreboard" class="mt-4 hidden"></div>
+        Return to Join Screen
+      </button>
     </div>
 
     <!-- Script linking to our script.js with all logic -->
