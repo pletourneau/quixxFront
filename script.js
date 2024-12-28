@@ -220,7 +220,7 @@ function generateScoreRows() {
 
     const label = document.createElement("span");
     label.className =
-      "absolute -top-4 left-0 text-xs font-semibold text-white bottom-full left-1/2 mb-1";
+      "absolute text-xs font-semibold text-white bottom-full left-1/2 transform -translate-x-1/2 mb-1 ";
     label.textContent = "At least 5 X's";
     finalSection.appendChild(label);
 
