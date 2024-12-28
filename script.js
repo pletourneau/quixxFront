@@ -444,6 +444,8 @@ function updateGameUI(newState) {
   const gameScreen = document.getElementById("game-screen");
   const gameOverScreen = document.getElementById("game-over-screen");
 
+  console.log("Game Over state:", gameState.gameOver);
+
   // If the game has started, hide joinGameScreen
   if (gameState.started && joinGameScreen) {
     joinGameScreen.classList.add("hidden");
