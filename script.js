@@ -352,6 +352,7 @@ function updateGameUI(newState) {
           ".w-10.h-10.bg-white.border, .w-10.h-10.border"
         );
         const boardArray = gameState.boards[currentPlayerName][color];
+
         boardArray.forEach((marked, i) => {
           const cell = allCells[i];
           if (!cell) return;
@@ -475,22 +476,32 @@ function updateGameUI(newState) {
     }
   }
 
-  // Locked Rows
-  if (gameState.lockedRows) {
+  // ----------------------------------------------------------
+  // FRONT-END LOCK CHECK: If local player marked final cell (index 10)
+  // row is "locked" for them => gray lock cell, otherwise white
+  // ----------------------------------------------------------
+  if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
       if (!row) return;
       const lockCell = row.querySelector(".w-12.h-10");
       if (!lockCell) return;
-      if (gameState.lockedRows[color]) {
+
+      // Check if the final cell (index 10) is marked
+      const boardArray = gameState.boards[currentPlayerName][color];
+      const finalCellIndex = 10; // last index in the row
+      const finalMarked = boardArray[finalCellIndex];
+
+      if (finalMarked) {
+        // Show gray lock cell for this local player
         lockCell.textContent = "🔒";
-        // Turn lock cell gray with white text
-        lockCell.classList.remove("text-black", "bg-white");
+        lockCell.classList.remove("bg-white", "text-black");
         lockCell.classList.add("bg-gray-400", "text-white");
       } else {
+        // Normal white lock cell
         lockCell.textContent = "LOCK";
         lockCell.classList.remove("bg-gray-400", "text-white");
-        lockCell.classList.add("text-black", "bg-white");
+        lockCell.classList.add("bg-white", "text-black");
       }
     });
   }
@@ -525,7 +536,6 @@ ws.onmessage = (event) => {
       endTurnButton.classList.remove("opacity-50");
     }
   } else if (data.type === "roomStatus") {
-    // Fix string interpolation
     alert(`You have ${data.status} the room: ${data.room}`);
     currentRoom = data.room;
   } else if (data.type === "newGame") {
