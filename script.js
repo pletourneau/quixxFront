@@ -65,7 +65,13 @@ function sendAction(type, payload = {}) {
  */
 function generateScoreRows() {
   const rowsConfig = {
-    red: { start: 2, end: 12, lock: "LOCK", bg: "bg-red-500", ascending: true },
+    red: {
+      start: 2,
+      end: 12,
+      lock: "LOCK",
+      bg: "bg-red-500",
+      ascending: true,
+    },
     yellow: {
       start: 2,
       end: 12,
@@ -114,7 +120,7 @@ function generateScoreRows() {
         rowContainer.appendChild(cell);
       });
 
-      // Final section with lastNumber & lock
+      // Final + lock
       const finalSection = document.createElement("div");
       finalSection.className = "flex flex-col items-center space-y-1";
 
@@ -202,7 +208,6 @@ function endTurn() {
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     endTurnButton.disabled = true;
-    // Make the button slightly dimmer
     endTurnButton.classList.add("opacity-50");
   }
 }
@@ -333,7 +338,7 @@ function updateGameUI(newState) {
       if (diceElement) diceElement.textContent = value;
     });
   } else {
-    // If no diceValues yet, show placeholders
+    // If no diceValues yet
     const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
     diceIds.forEach((dice) => {
       const diceElement = document.getElementById(dice);
@@ -476,31 +481,36 @@ function updateGameUI(newState) {
     }
   }
 
-  // ----------------------------------------------------------
-  // FRONT-END LOCK CHECK: If local player marked final cell (index 10)
-  // row is "locked" for them => gray lock cell, otherwise white
-  // ----------------------------------------------------------
-  if (gameState.boards && gameState.boards[currentPlayerName]) {
+  // If row is locked by *someone*, show "🔒".
+  // If locked by *this* player => we can optionally do gray or white, your choice:
+  // Let's do gray if locked by me, white if locked by another, or normal "LOCK" if unlocked.
+  if (gameState.lockedRows) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
       if (!row) return;
       const lockCell = row.querySelector(".w-12.h-10");
       if (!lockCell) return;
 
-      // Check if the final cell (index 10) is marked
-      const boardArray = gameState.boards[currentPlayerName][color];
-      const finalCellIndex = 10; // last index in the row
-      const finalMarked = boardArray[finalCellIndex];
+      const lockedBy = gameState.lockedRows[color];
+      // either null or a playerName
 
-      if (finalMarked) {
-        // Show gray lock cell for this local player
+      if (lockedBy === null) {
+        // not locked
+        lockCell.textContent = "LOCK";
+        lockCell.classList.remove("bg-gray-400", "text-white");
+        lockCell.classList.remove("bg-white", "text-black"); // remove both states
+        // default to white background
+        lockCell.classList.add("bg-white", "text-black");
+      } else if (lockedBy === currentPlayerName) {
+        // I locked it => show gray lock
         lockCell.textContent = "🔒";
         lockCell.classList.remove("bg-white", "text-black");
         lockCell.classList.add("bg-gray-400", "text-white");
       } else {
-        // Normal white lock cell
-        lockCell.textContent = "LOCK";
+        // Someone else locked => white lock
+        lockCell.textContent = "🔒";
         lockCell.classList.remove("bg-gray-400", "text-white");
+        lockCell.classList.remove("bg-white", "text-black");
         lockCell.classList.add("bg-white", "text-black");
       }
     });
