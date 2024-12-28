@@ -1,3 +1,4 @@
+// ========== WebSocket Logic (Unchanged) ==========
 const ws = new WebSocket("wss://quixxback.onrender.com");
 
 let gameState = null;
@@ -12,11 +13,14 @@ function joinRoom(passcode, playerName) {
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
 
-// When socket opens, generate rows + penalty boxes
+// When socket opens, generate rows + penalty boxes AND random QUIXX background
 ws.onopen = () => {
   console.log("WebSocket connected. Generating rows/penalties...");
   generateScoreRows();
   generatePenaltyBoxes();
+
+  // Also fill random QUIXX background once the page is connected
+  fillQuixxBackground();
 };
 
 /**
@@ -59,6 +63,56 @@ function sendAction(type, payload = {}) {
     console.warn("WebSocket not open. Cannot send action:", type);
   }
 }
+
+// ========== RANDOM QUIXX BACKGROUND LOGIC ==========
+
+const QUIXX_FONTS = [
+  "'Comic Sans MS', cursive",
+  "Georgia, serif",
+  "Impact, sans-serif",
+  "'Courier New', monospace",
+];
+const QUIXX_COLORS = ["red", "blue", "green", "yellow"];
+const QUIXX_COUNT = 200; // how many random QUIXX elements to place
+
+function fillQuixxBackground() {
+  const container = document.getElementById("quixx-random-bg");
+  if (!container) return;
+
+  // Clear existing (if any)
+  container.innerHTML = "";
+
+  for (let i = 0; i < QUIXX_COUNT; i++) {
+    const span = document.createElement("span");
+
+    // Random text content
+    span.textContent = "QUIXX   "; // add spacing
+
+    // Random font & color
+    const font = QUIXX_FONTS[Math.floor(Math.random() * QUIXX_FONTS.length)];
+    const color = QUIXX_COLORS[Math.floor(Math.random() * QUIXX_COLORS.length)];
+
+    // Random position in vw/vh
+    const x = Math.random() * 100;
+    const y = Math.random() * 100;
+    // Optionally random rotation
+    const rotate = Math.floor(Math.random() * 360);
+
+    // Style
+    span.style.position = "absolute";
+    span.style.left = `${x}vw`;
+    span.style.top = `${y}vh`;
+    span.style.transform = `rotate(${rotate}deg)`;
+
+    span.style.fontFamily = font;
+    span.style.color = color;
+    span.style.fontSize = "16px";
+
+    container.appendChild(span);
+  }
+}
+
+// ========== Existing Qwixx Helper Functions ==========
 
 /**
  * Generate the 4 color rows
@@ -482,8 +536,7 @@ function updateGameUI(newState) {
   }
 
   // If row is locked by *someone*, show "🔒".
-  // If locked by *this* player => we can optionally do gray or white, your choice:
-  // Let's do gray if locked by me, white if locked by another, or normal "LOCK" if unlocked.
+  // If locked by *this* player => gray lock, etc.
   if (gameState.lockedRows) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -498,8 +551,7 @@ function updateGameUI(newState) {
         // not locked
         lockCell.textContent = "LOCK";
         lockCell.classList.remove("bg-gray-400", "text-white");
-        lockCell.classList.remove("bg-white", "text-black"); // remove both states
-        // default to white background
+        lockCell.classList.remove("bg-white", "text-black");
         lockCell.classList.add("bg-white", "text-black");
       } else if (lockedBy === currentPlayerName) {
         // I locked it => show gray lock
