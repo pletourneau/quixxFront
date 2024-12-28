@@ -17,7 +17,7 @@
         margin: 0;
       }
 
-      /* The container for random "QUIXX" text background */
+      /* Container for random QUIXX text background */
       #quixx-random-bg {
         position: fixed;
         top: 0;
@@ -32,8 +32,7 @@
         background: linear-gradient(to bottom, #ffb37a, #ff600b);
       }
 
-      /* Optionally, a function in script.js could show/hide #game-over-screen */
-      /* #game-over-screen is hidden by default. We'll show it once the game ends. */
+      /* The #game-over-screen is hidden by default; we unhide once the game ends */
       #game-over-screen.hidden {
         display: none;
       }
@@ -258,7 +257,9 @@
         class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md text-center"
       >
         <h1 class="text-3xl font-bold text-red-600 mb-4">Game Over!</h1>
+        <!-- We show final scoreboard here -->
         <div id="scoreboard" class="mb-4"></div>
+
         <button
           onclick="returnToJoinScreen()"
           class="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition font-semibold shadow"

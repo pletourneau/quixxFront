@@ -55,8 +55,9 @@ function sendAction(type, payload = {}) {
   }
 }
 
-// ==================== RANDOM "QUIXX" BACKGROUND LOGIC ====================
-
+/**
+ * Random "QUIXX" background logic
+ */
 const QUIXX_FONTS = [
   "'Comic Sans MS', cursive",
   "Georgia, serif",
@@ -66,33 +67,22 @@ const QUIXX_FONTS = [
 const QUIXX_COLORS = ["red", "blue", "green", "yellow"];
 const QUIXX_COUNT = 400; // Increase to flood more QUIXX lines
 
-/**
- * Fill the #quixx-random-bg container with random QUIXX text.
- */
 function fillQuixxBackground() {
   const container = document.getElementById("quixx-random-bg");
   if (!container) return;
 
-  // Clear any existing text
   container.innerHTML = "";
 
   for (let i = 0; i < QUIXX_COUNT; i++) {
     const span = document.createElement("span");
-
-    // We'll do "QUIXX  " to space them out
     span.textContent = "QUIXX  ";
 
-    // Random font from 4 choices
     const font = QUIXX_FONTS[Math.floor(Math.random() * QUIXX_FONTS.length)];
-    // Random color from 4 choices
     const color = QUIXX_COLORS[Math.floor(Math.random() * QUIXX_COLORS.length)];
-
-    // Random position (vw, vh)
     const x = Math.random() * 100;
     const y = Math.random() * 100;
     const rotate = Math.floor(Math.random() * 360);
 
-    // Style it
     span.style.position = "absolute";
     span.style.left = `${x}vw`;
     span.style.top = `${y}vh`;
@@ -105,19 +95,39 @@ function fillQuixxBackground() {
   }
 }
 
-// ==================== WEBSOCKET EVENT: ONOPEN ====================
+/**
+ * Called when the "Return to Join Screen" button is clicked on the Game Over screen
+ * - Hide #game-over-screen
+ * - Hide #game-screen
+ * - Show #join-game-screen
+ * (Optionally reset the game state, or re-join, or whatever flow you prefer.)
+ */
+function returnToJoinScreen() {
+  const joinScreen = document.getElementById("join-game-screen");
+  const gameScreen = document.getElementById("game-screen");
+  const gameOverScreen = document.getElementById("game-over-screen");
+
+  if (joinScreen) joinScreen.classList.remove("hidden");
+  if (gameScreen) gameScreen.classList.add("hidden");
+  if (gameOverScreen) gameOverScreen.classList.add("hidden");
+
+  // Optionally reset any variables or do something else...
+  // For example, if you want them to re-join or something:
+  // gameState = null;
+  // isRoomCreator = false;
+  // ...
+}
+
+// ==================== WEBSOCKET ONOPEN: Initialize UI ====================
 ws.onopen = () => {
   console.log("WebSocket connected. Generating rows/penalties...");
 
-  // 1) Generate Qwixx UI
   generateScoreRows();
   generatePenaltyBoxes();
-
-  // 2) Fill the random QUIXX background
   fillQuixxBackground();
 };
 
-// ==================== WEBSOCKET ONMESSAGE: STATE UPDATES ====================
+// ==================== WEBSOCKET ONMESSAGE: State Updates ====================
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
   console.log("onmessage received:", data);
@@ -126,7 +136,7 @@ ws.onmessage = (event) => {
     updateGameUI(data);
   } else if (data.type === "error") {
     alert(data.message);
-    // Re-enable End Turn if we disabled it
+    // Re-enable End Turn button if disabled
     const endTurnButton = document.querySelector("button[onclick='endTurn()']");
     if (endTurnButton) {
       endTurnButton.disabled = false;
@@ -144,25 +154,18 @@ ws.onmessage = (event) => {
   }
 };
 
-// ==================== QWIXX UI FUNCTIONS ====================
-//
-// 1) generateScoreRows()
-// 2) generatePenaltyBoxes()
-// 3) attemptMarkCell()
-// 4) rollDice()
-// 5) endTurn()
-// 6) resetTurn()
-// 7) shuffle()
-// 8) displayScoreboard() - for final only, or we can do in-game
-// 9) updateCurrentTurnRow()
-// 10) updateGameUI()
-
 /**
- * Generate 4 color rows (red, yellow, green, blue)
+ * Generate the 4 color rows
  */
 function generateScoreRows() {
   const rowsConfig = {
-    red: { start: 2, end: 12, lock: "LOCK", bg: "bg-red-500", ascending: true },
+    red: {
+      start: 2,
+      end: 12,
+      lock: "LOCK",
+      bg: "bg-red-500",
+      ascending: true,
+    },
     yellow: {
       start: 2,
       end: 12,
@@ -190,14 +193,21 @@ function generateScoreRows() {
     const rowContainer = document.getElementById(`${color}-row`);
     if (!rowContainer) return;
 
-    // Clear row first
     rowContainer.innerHTML = "";
+    const { start, end, lock, bg } = rowsConfig[color];
+    // Use inline-flex with some padding to size to content
+    rowContainer.className = `
+      inline-flex
+      items-center
+      space-x-1
+      ${bg}
+      rounded-lg
+      px-5
+      py-5
+      mb-2
+      max-w-min
+    `;
 
-    const { start, end, lock, bg, ascending } = rowsConfig[color];
-    // We set inline-flex, some spacing, etc.
-    rowContainer.className = `inline-flex items-center space-x-1 ${bg} rounded-lg px-5 py-5 mb-2 max-w-min`;
-
-    // Collect numbers
     const step = start < end ? 1 : -1;
     const numbers = [];
     for (let i = start; i !== end + step; i += step) {
@@ -206,7 +216,7 @@ function generateScoreRows() {
     const lastNumber = numbers[numbers.length - 1];
     const normalNumbers = numbers.slice(0, -1);
 
-    // Create normal cells
+    // Normal cells
     normalNumbers.forEach((num) => {
       const cell = document.createElement("div");
       cell.textContent = num;
@@ -217,11 +227,10 @@ function generateScoreRows() {
       rowContainer.appendChild(cell);
     });
 
-    // The final number & lock
+    // Final number + lock
     const finalSection = document.createElement("div");
     finalSection.className = "relative inline-flex items-center";
 
-    // The label "At least 5 X's"
     const label = document.createElement("span");
     label.className =
       "absolute text-xs font-semibold text-white bottom-full left-1/2 transform -translate-x-1/2 mb-1 whitespace-nowrap";
@@ -231,7 +240,6 @@ function generateScoreRows() {
     const finalRow = document.createElement("div");
     finalRow.className = "flex space-x-1 items-center";
 
-    // Final number cell
     const finalNumberCell = document.createElement("div");
     finalNumberCell.textContent = lastNumber;
     finalNumberCell.setAttribute("data-original-number", lastNumber);
@@ -242,7 +250,6 @@ function generateScoreRows() {
     );
     finalRow.appendChild(finalNumberCell);
 
-    // Lock cell
     const lockCell = document.createElement("div");
     lockCell.textContent = lock;
     lockCell.className =
@@ -255,7 +262,7 @@ function generateScoreRows() {
 }
 
 /**
- * Generate 4 penalty boxes
+ * Generate the 4 penalty boxes
  */
 function generatePenaltyBoxes() {
   const penaltiesContainer = document.getElementById("penalties-container");
@@ -283,7 +290,7 @@ function attemptMarkCell(cell, color, number) {
 }
 
 /**
- * Roll Dice action
+ * Roll Dice
  */
 function rollDice() {
   const currentPlayerName = document.getElementById("player-name").value;
@@ -292,7 +299,9 @@ function rollDice() {
     gameState.turnOrder &&
     gameState.turnOrder[gameState.activePlayerIndex] === currentPlayerName
   ) {
-    if (!gameState.started || gameState.gameOver) return;
+    if (!gameState.started || gameState.gameOver) {
+      return;
+    }
     sendAction("rollDice");
   } else {
     alert("It's not your turn to roll the dice.");
@@ -300,7 +309,7 @@ function rollDice() {
 }
 
 /**
- * End Turn action
+ * End Turn
  */
 function endTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
@@ -314,7 +323,7 @@ function endTurn() {
 }
 
 /**
- * Reset Turn action
+ * Reset Turn
  */
 function resetTurn() {
   const currentPlayerName = document.getElementById("player-name").value;
@@ -332,12 +341,11 @@ function shuffle(array) {
 }
 
 /**
- * The final scoreboard is displayed on the game-over screen
- * so we might only do a small helper for that if needed.
- * But let's keep a function in case we want it.
+ * Display final scoreboard
+ * Now used only for #scoreboard in the game-over screen
  */
-function displayScoreboard(scoreboard, containerId = "scoreboard") {
-  const scoreboardDiv = document.getElementById(containerId);
+function displayScoreboard(scoreboard) {
+  const scoreboardDiv = document.getElementById("scoreboard");
   if (!scoreboardDiv) return;
 
   scoreboardDiv.innerHTML =
@@ -380,7 +388,7 @@ function displayScoreboard(scoreboard, containerId = "scoreboard") {
 }
 
 /**
- * Update the turn order row
+ * Update turn order row
  */
 function updateCurrentTurnRow(activePlayer, turnOrder) {
   const row = document.getElementById("current-turn-row");
@@ -405,7 +413,7 @@ function updateCurrentTurnRow(activePlayer, turnOrder) {
 }
 
 /**
- * The main UI update function (called whenever we get "gameState")
+ * Main UI update function triggered by "gameState" messages
  */
 function updateGameUI(newState) {
   console.log("Received gameState:", newState);
@@ -415,10 +423,12 @@ function updateGameUI(newState) {
   const gameScreen = document.getElementById("game-screen");
   const gameOverScreen = document.getElementById("game-over-screen");
 
-  // If the game has started, hide joinGame screen, show game screen (unless game is over)
+  // If the game has started, hide joinGameScreen
   if (gameState.started && joinGameScreen) {
     joinGameScreen.classList.add("hidden");
   }
+
+  // If not gameOver, we show the game screen
   if (gameScreen && gameState.started && !gameState.gameOver) {
     gameScreen.classList.remove("hidden");
   }
@@ -430,7 +440,7 @@ function updateGameUI(newState) {
 
   const currentPlayerName = document.getElementById("player-name").value;
 
-  // Identify the active player
+  // Identify active player
   let activePlayerName = null;
   if (gameState.turnOrder && gameState.turnOrder.length > 0) {
     activePlayerName = gameState.turnOrder[gameState.activePlayerIndex];
@@ -444,12 +454,12 @@ function updateGameUI(newState) {
 
   const isActivePlayer = activePlayerName === currentPlayerName;
 
-  // Update turn order
-  if (gameState.turnOrder && gameState.turnOrder.length > 0) {
+  // Update turn order display
+  if (gameState.turnOrder) {
     updateCurrentTurnRow(activePlayerName, gameState.turnOrder);
   }
 
-  // Show dice values or placeholders
+  // Show dice or placeholders
   if (gameState.diceValues) {
     Object.entries(gameState.diceValues).forEach(([dice, value]) => {
       const diceElement = document.getElementById(dice);
@@ -465,7 +475,7 @@ function updateGameUI(newState) {
     });
   }
 
-  // Update the board for the local player
+  // Update board for local player
   if (gameState.boards && gameState.boards[currentPlayerName]) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -491,24 +501,23 @@ function updateGameUI(newState) {
     });
   }
 
-  // Update the player list
+  // Update player list
   const playerInfo = document.getElementById("player-info");
   if (gameState.players && playerInfo) {
     playerInfo.innerHTML = `<h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>`;
-
     gameState.players.forEach((player) => {
       const playerElement = document.createElement("div");
       playerElement.classList.add("player");
       playerElement.textContent = player.name;
 
-      // If disconnected => red
+      // Disconnected => red
       if (player.connected === false) {
         playerElement.style.color = "red";
       } else {
         playerElement.style.color = "black";
       }
 
-      // If ended turn => line-through
+      // Ended turn => line-through
       if (
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(player.name)
@@ -596,7 +605,6 @@ function updateGameUI(newState) {
   }
 
   // Row-locking logic
-  // If locked by some user, we set text to "🔒", else "LOCK"
   if (gameState.lockedRows) {
     ["red", "yellow", "green", "blue"].forEach((color) => {
       const row = document.getElementById(`${color}-row`);
@@ -606,18 +614,15 @@ function updateGameUI(newState) {
 
       const lockedBy = gameState.lockedRows[color]; // null or playerName
       if (lockedBy === null) {
-        // not locked
         lockCell.textContent = "LOCK";
         lockCell.classList.remove("bg-gray-400", "text-white");
         lockCell.classList.remove("bg-white", "text-black");
         lockCell.classList.add("bg-white", "text-black");
       } else if (lockedBy === currentPlayerName) {
-        // locked by me => gray
         lockCell.textContent = "🔒";
         lockCell.classList.remove("bg-white", "text-black");
         lockCell.classList.add("bg-gray-400", "text-white");
       } else {
-        // locked by someone else => white
         lockCell.textContent = "🔒";
         lockCell.classList.remove("bg-gray-400", "text-white");
         lockCell.classList.remove("bg-white", "text-black");
@@ -632,55 +637,16 @@ function updateGameUI(newState) {
     if (gameScreen) {
       gameScreen.classList.add("hidden");
     }
-    // Show the game over screen
+    // Show game over screen
     if (gameOverScreen) {
       gameOverScreen.classList.remove("hidden");
     }
-    // If we have final scoreboard, show it in #game-over-scoreboard
+    // Display scoreboard in #scoreboard
     if (gameState.scoreboard) {
-      const gameOverScoreboardDiv = document.getElementById(
-        "game-over-scoreboard"
-      );
-      if (gameOverScoreboardDiv) {
-        // We'll build HTML or reuse the displayScoreboard approach:
-        gameOverScoreboardDiv.innerHTML = ""; // clear it
-        let tableHtml = `<h3 class="text-xl font-bold mb-2">Final Scores:</h3>
-          <table class="mx-auto border-collapse border border-black"><tr>`;
-        [
-          "Player",
-          "Red",
-          "Yellow",
-          "Green",
-          "Blue",
-          "Penalties",
-          "Total",
-        ].forEach((h) => {
-          tableHtml += `<th class="border border-black px-2 py-1">${h}</th>`;
-        });
-        tableHtml += "</tr>";
-
-        gameState.scoreboard.forEach((s) => {
-          tableHtml += "<tr>";
-          [
-            s.player,
-            s.redScore,
-            s.yellowScore,
-            s.greenScore,
-            s.blueScore,
-            s.penaltiesScore,
-            s.totalScore,
-          ].forEach((val) => {
-            tableHtml += `<td class="border border-black px-2 py-1">${val}</td>`;
-          });
-          tableHtml += "</tr>";
-        });
-        tableHtml += "</table>";
-
-        gameOverScoreboardDiv.innerHTML = tableHtml;
-      }
+      displayScoreboard(gameState.scoreboard);
     }
   } else {
-    // Not game over => hide #game-over-screen
+    // Not game over => hide #game-over-screen if present
     if (gameOverScreen) {
       gameOverScreen.classList.add("hidden");
     }
