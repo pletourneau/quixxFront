@@ -33,7 +33,7 @@ function startGame() {
   if (isRoomCreator) {
     const players = Array.from(
       document.querySelectorAll("#player-info .player")
-    ).map((el) => el.textContent);
+    ).map((el) => el.textContent.trim());
 
     shuffle(players);
     console.log("Starting game with players:", players);
@@ -100,7 +100,6 @@ function fillQuixxBackground() {
  * - Hide #game-over-screen
  * - Hide #game-screen
  * - Show #join-game-screen
- * (Optionally reset the game state, or re-join, or whatever flow you prefer.)
  */
 function returnToJoinScreen() {
   const joinScreen = document.getElementById("join-game-screen");
@@ -111,11 +110,14 @@ function returnToJoinScreen() {
   if (gameScreen) gameScreen.classList.add("hidden");
   if (gameOverScreen) gameOverScreen.classList.add("hidden");
 
-  // Optionally reset any variables or do something else...
-  // For example, if you want them to re-join or something:
-  // gameState = null;
-  // isRoomCreator = false;
-  // ...
+  // Optionally reset any variables or perform cleanup
+  gameState = null;
+  isRoomCreator = false;
+  currentRoom = "";
+
+  // Reset input fields
+  document.getElementById("player-name").value = "";
+  document.getElementById("passcode").value = "";
 }
 
 // ==================== WEBSOCKET ONOPEN: Initialize UI ====================
@@ -453,7 +455,7 @@ function updateGameUI(newState) {
       joinGameScreen.classList.add("hidden");
     }
 
-    // If not gameOver, show the game screen
+    // If not gameOver, we show the game screen
     if (gameScreen && gameState.started && !gameState.gameOver) {
       console.log("Showing game screen");
       gameScreen.classList.remove("hidden");
