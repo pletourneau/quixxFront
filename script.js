@@ -387,6 +387,27 @@ function displayScoreboard(scoreboard) {
   scoreboardDiv.classList.remove("hidden");
 }
 
+// Checks phone orientation
+function checkOrientation() {
+  const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+  const isMobile =
+    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    navigator.maxTouchPoints > 1;
+  const rotateMessage = document.getElementById("rotate-phone-message");
+
+  if (isPortrait && isMobile) {
+    rotateMessage.classList.remove("hidden");
+  } else {
+    rotateMessage.classList.add("hidden");
+  }
+}
+
+// Initial check
+checkOrientation();
+
+// Add event listener to detect orientation changes
+window.addEventListener("resize", checkOrientation);
+
 /**
  * Update turn order row
  */
