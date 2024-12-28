@@ -216,10 +216,10 @@ function generateScoreRows() {
 
     // Final number + lock cell
     const finalSection = document.createElement("div");
-    finalSection.className = "flex flex-col items-center space-y-1";
+    finalSection.className = "relative inline-flex items-center";
 
     const label = document.createElement("span");
-    label.className = "text-xs font-semibold text-white";
+    label.className = "absolute -top-4 left-0 text-xs font-semibold text-white";
     label.textContent = "At least 5 X's";
     finalSection.appendChild(label);
 
