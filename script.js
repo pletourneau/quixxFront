@@ -437,242 +437,250 @@ function updateCurrentTurnRow(activePlayer, turnOrder) {
  * Main UI update function triggered by "gameState" messages
  */
 function updateGameUI(newState) {
-  console.log("Received gameState:", newState);
-  gameState = newState;
+  try {
+    console.log("Received gameState:", newState);
+    gameState = newState;
 
-  const joinGameScreen = document.getElementById("join-game-screen");
-  const gameScreen = document.getElementById("game-screen");
-  const gameOverScreen = document.getElementById("game-over-screen");
+    const joinGameScreen = document.getElementById("join-game-screen");
+    const gameScreen = document.getElementById("game-screen");
+    const gameOverScreen = document.getElementById("game-over-screen");
 
-  console.log("Game Over state:", gameState.gameOver);
+    console.log("Game Over state:", gameState.gameOver);
 
-  // If the game has started, hide joinGameScreen
-  if (gameState.started && joinGameScreen) {
-    joinGameScreen.classList.add("hidden");
-  }
-
-  // If not gameOver, we show the game screen
-  if (gameScreen && gameState.started && !gameState.gameOver) {
-    gameScreen.classList.remove("hidden");
-  }
-
-  // If the game is not over, hide #game-over-screen
-  if (gameOverScreen && !gameState.gameOver) {
-    gameOverScreen.classList.add("hidden");
-  }
-
-  const currentPlayerName = document.getElementById("player-name").value;
-
-  // Identify active player
-  let activePlayerName = null;
-  if (gameState.turnOrder && gameState.turnOrder.length > 0) {
-    activePlayerName = gameState.turnOrder[gameState.activePlayerIndex];
-  }
-  console.log(
-    "Current player:",
-    currentPlayerName,
-    "Active player:",
-    activePlayerName
-  );
-
-  const isActivePlayer = activePlayerName === currentPlayerName;
-
-  // Update turn order display
-  if (gameState.turnOrder) {
-    updateCurrentTurnRow(activePlayerName, gameState.turnOrder);
-  }
-
-  // Show dice or placeholders
-  if (gameState.diceValues) {
-    Object.entries(gameState.diceValues).forEach(([dice, value]) => {
-      const diceElement = document.getElementById(dice);
-      if (diceElement) diceElement.textContent = value;
-    });
-  } else {
-    const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
-    diceIds.forEach((dice) => {
-      const diceElement = document.getElementById(dice);
-      if (diceElement) {
-        diceElement.textContent = "🎲";
-      }
-    });
-  }
-
-  // Update board for local player
-  if (gameState.boards && gameState.boards[currentPlayerName]) {
-    ["red", "yellow", "green", "blue"].forEach((color) => {
-      const row = document.getElementById(`${color}-row`);
-      if (!row) return;
-      const allCells = row.querySelectorAll(
-        ".w-10.h-10.bg-white.border, .w-10.h-10.border"
-      );
-      const boardArray = gameState.boards[currentPlayerName][color];
-
-      boardArray.forEach((marked, i) => {
-        const cell = allCells[i];
-        if (!cell) return;
-        cell.classList.remove("bg-gray-300", "bg-white");
-        if (marked) {
-          cell.classList.add("bg-gray-300");
-          cell.textContent = "X";
-        } else {
-          cell.classList.add("bg-white");
-          const originalNumber = cell.getAttribute("data-original-number");
-          cell.textContent = originalNumber;
-        }
-      });
-    });
-  }
-
-  // Update player list
-  const playerInfo = document.getElementById("player-info");
-  if (gameState.players && playerInfo) {
-    playerInfo.innerHTML = `<h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>`;
-    gameState.players.forEach((player) => {
-      const playerElement = document.createElement("div");
-      playerElement.classList.add("player");
-      playerElement.textContent = player.name;
-
-      // Disconnected => red
-      if (player.connected === false) {
-        playerElement.style.color = "red";
-      } else {
-        playerElement.style.color = "black";
-      }
-
-      // Ended turn => line-through
-      if (
-        gameState.turnEndedBy &&
-        gameState.turnEndedBy.includes(player.name)
-      ) {
-        playerElement.classList.add("line-through");
-      }
-      playerInfo.appendChild(playerElement);
-    });
-  }
-
-  // Roll Dice button
-  const rollDiceButton = document.getElementById("roll-dice-btn");
-  if (rollDiceButton) {
-    if (!gameState.started || gameState.gameOver) {
-      rollDiceButton.disabled = true;
-      rollDiceButton.classList.add("opacity-50");
-    } else {
-      rollDiceButton.disabled = !isActivePlayer;
-      if (rollDiceButton.disabled) {
-        rollDiceButton.classList.add("opacity-50");
-      } else {
-        rollDiceButton.classList.remove("opacity-50");
-      }
+    // If the game has started, hide joinGameScreen
+    if (gameState.started && joinGameScreen) {
+      console.log("Hiding join game screen");
+      joinGameScreen.classList.add("hidden");
     }
-  }
 
-  // End Turn button
-  const endTurnButton = document.querySelector("button[onclick='endTurn()']");
-  if (endTurnButton) {
-    if (!gameState.started || gameState.gameOver) {
-      endTurnButton.disabled = true;
-      endTurnButton.classList.add("opacity-50");
-    } else {
-      const alreadyEnded =
-        gameState.turnEndedBy &&
-        gameState.turnEndedBy.includes(currentPlayerName);
-      endTurnButton.disabled = alreadyEnded;
-      if (alreadyEnded) {
-        endTurnButton.classList.add("opacity-50");
-      } else {
-        endTurnButton.classList.remove("opacity-50");
-      }
+    // If not gameOver, show the game screen
+    if (gameScreen && gameState.started && !gameState.gameOver) {
+      console.log("Showing game screen");
+      gameScreen.classList.remove("hidden");
     }
-  }
 
-  // Reset Turn button
-  const resetTurnButton = document.querySelector(
-    "button[onclick='resetTurn()']"
-  );
-  if (resetTurnButton) {
-    if (!gameState.started || gameState.gameOver) {
-      resetTurnButton.disabled = true;
-      resetTurnButton.classList.add("opacity-50");
-    } else {
-      const alreadyEnded =
-        gameState.turnEndedBy &&
-        gameState.turnEndedBy.includes(currentPlayerName);
-      resetTurnButton.disabled = alreadyEnded || !gameState.diceRolledThisTurn;
-      if (resetTurnButton.disabled) {
-        resetTurnButton.classList.add("opacity-50");
-      } else {
-        resetTurnButton.classList.remove("opacity-50");
-      }
-    }
-  }
-
-  // Update penalties for local player
-  if (
-    gameState.penalties &&
-    gameState.penalties[currentPlayerName] !== undefined
-  ) {
-    const penaltyCount = gameState.penalties[currentPlayerName];
-    const penaltiesContainer = document.getElementById("penalties-container");
-    if (penaltiesContainer) {
-      for (let i = 0; i < 4; i++) {
-        const box = penaltiesContainer.children[i];
-        box.classList.remove("bg-gray-300", "line-through");
-        box.textContent = "";
-        if (i < penaltyCount) {
-          box.classList.add("bg-gray-300");
-          box.textContent = "X";
-        }
-      }
-    }
-  }
-
-  // Row-locking logic
-  if (gameState.lockedRows) {
-    ["red", "yellow", "green", "blue"].forEach((color) => {
-      const row = document.getElementById(`${color}-row`);
-      if (!row) return;
-      const lockCell = row.querySelector(".w-12.h-10");
-      if (!lockCell) return;
-
-      const lockedBy = gameState.lockedRows[color]; // null or playerName
-      if (lockedBy === null) {
-        lockCell.textContent = "LOCK";
-        lockCell.classList.remove("bg-gray-400", "text-white");
-        lockCell.classList.remove("bg-white", "text-black");
-        lockCell.classList.add("bg-white", "text-black");
-      } else if (lockedBy === currentPlayerName) {
-        lockCell.textContent = "🔒";
-        lockCell.classList.remove("bg-white", "text-black");
-        lockCell.classList.add("bg-gray-400", "text-white");
-      } else {
-        lockCell.textContent = "🔒";
-        lockCell.classList.remove("bg-gray-400", "text-white");
-        lockCell.classList.remove("bg-white", "text-black");
-        lockCell.classList.add("bg-white", "text-black");
-      }
-    });
-  }
-
-  // Check for game over
-  if (gameState.gameOver) {
-    // Hide main game screen
-    if (gameScreen) {
-      gameScreen.classList.add("hidden");
-    }
-    // Show game over screen
-    if (gameOverScreen) {
-      gameOverScreen.classList.remove("hidden");
-      console.log("remove hidden class");
-    }
-    // Display scoreboard in #scoreboard
-    if (gameState.scoreboard) {
-      displayScoreboard(gameState.scoreboard);
-    }
-  } else {
-    // Not game over => hide #game-over-screen if present
-    if (gameOverScreen) {
+    // If the game is not over, hide #game-over-screen
+    if (gameOverScreen && !gameState.gameOver) {
+      console.log("Hiding game over screen");
       gameOverScreen.classList.add("hidden");
     }
+
+    const currentPlayerName = document.getElementById("player-name").value;
+    console.log("Current Player Name:", currentPlayerName);
+
+    // Identify active player
+    let activePlayerName = null;
+    if (gameState.turnOrder && gameState.turnOrder.length > 0) {
+      activePlayerName = gameState.turnOrder[gameState.activePlayerIndex];
+    }
+    console.log("Active Player:", activePlayerName);
+
+    const isActivePlayer = activePlayerName === currentPlayerName;
+    console.log("Is Active Player:", isActivePlayer);
+
+    // Update turn order display
+    if (gameState.turnOrder) {
+      updateCurrentTurnRow(activePlayerName, gameState.turnOrder);
+    }
+
+    // Show dice or placeholders
+    if (gameState.diceValues) {
+      Object.entries(gameState.diceValues).forEach(([dice, value]) => {
+        const diceElement = document.getElementById(dice);
+        if (diceElement) diceElement.textContent = value;
+      });
+    } else {
+      const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
+      diceIds.forEach((dice) => {
+        const diceElement = document.getElementById(dice);
+        if (diceElement) {
+          diceElement.textContent = "🎲";
+        }
+      });
+    }
+
+    // Update board for local player
+    if (gameState.boards && gameState.boards[currentPlayerName]) {
+      ["red", "yellow", "green", "blue"].forEach((color) => {
+        const row = document.getElementById(`${color}-row`);
+        if (!row) return;
+        const allCells = row.querySelectorAll(
+          ".w-10.h-10.bg-white.border, .w-10.h-10.border"
+        );
+        const boardArray = gameState.boards[currentPlayerName][color];
+
+        boardArray.forEach((marked, i) => {
+          const cell = allCells[i];
+          if (!cell) return;
+          cell.classList.remove("bg-gray-300", "bg-white");
+          if (marked) {
+            cell.classList.add("bg-gray-300");
+            cell.textContent = "X";
+          } else {
+            cell.classList.add("bg-white");
+            const originalNumber = cell.getAttribute("data-original-number");
+            cell.textContent = originalNumber;
+          }
+        });
+      });
+    }
+
+    // Update player list
+    const playerInfo = document.getElementById("player-info");
+    if (gameState.players && playerInfo) {
+      playerInfo.innerHTML = `<h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>`;
+      gameState.players.forEach((player) => {
+        const playerElement = document.createElement("div");
+        playerElement.classList.add("player");
+        playerElement.textContent = player.name;
+
+        // Disconnected => red
+        if (player.connected === false) {
+          playerElement.style.color = "red";
+        } else {
+          playerElement.style.color = "black";
+        }
+
+        // Ended turn => line-through
+        if (
+          gameState.turnEndedBy &&
+          gameState.turnEndedBy.includes(player.name)
+        ) {
+          playerElement.classList.add("line-through");
+        }
+        playerInfo.appendChild(playerElement);
+      });
+    }
+
+    // Update Roll Dice button
+    const rollDiceButton = document.getElementById("roll-dice-btn");
+    if (rollDiceButton) {
+      if (!gameState.started || gameState.gameOver) {
+        rollDiceButton.disabled = true;
+        rollDiceButton.classList.add("opacity-50");
+      } else {
+        rollDiceButton.disabled = !isActivePlayer;
+        if (rollDiceButton.disabled) {
+          rollDiceButton.classList.add("opacity-50");
+        } else {
+          rollDiceButton.classList.remove("opacity-50");
+        }
+      }
+    }
+
+    // Update End Turn button
+    const endTurnButton = document.querySelector("button[onclick='endTurn()']");
+    if (endTurnButton) {
+      if (!gameState.started || gameState.gameOver) {
+        endTurnButton.disabled = true;
+        endTurnButton.classList.add("opacity-50");
+      } else {
+        const alreadyEnded =
+          gameState.turnEndedBy &&
+          gameState.turnEndedBy.includes(currentPlayerName);
+        endTurnButton.disabled = alreadyEnded;
+        if (alreadyEnded) {
+          endTurnButton.classList.add("opacity-50");
+        } else {
+          endTurnButton.classList.remove("opacity-50");
+        }
+      }
+    }
+
+    // Update Reset Turn button
+    const resetTurnButton = document.querySelector(
+      "button[onclick='resetTurn()']"
+    );
+    if (resetTurnButton) {
+      if (!gameState.started || gameState.gameOver) {
+        resetTurnButton.disabled = true;
+        resetTurnButton.classList.add("opacity-50");
+      } else {
+        const alreadyEnded =
+          gameState.turnEndedBy &&
+          gameState.turnEndedBy.includes(currentPlayerName);
+        resetTurnButton.disabled =
+          alreadyEnded || !gameState.diceRolledThisTurn;
+        if (resetTurnButton.disabled) {
+          resetTurnButton.classList.add("opacity-50");
+        } else {
+          resetTurnButton.classList.remove("opacity-50");
+        }
+      }
+    }
+
+    // Update penalties for local player
+    if (
+      gameState.penalties &&
+      gameState.penalties[currentPlayerName] !== undefined
+    ) {
+      const penaltyCount = gameState.penalties[currentPlayerName];
+      const penaltiesContainer = document.getElementById("penalties-container");
+      if (penaltiesContainer) {
+        for (let i = 0; i < 4; i++) {
+          const box = penaltiesContainer.children[i];
+          box.classList.remove("bg-gray-300", "line-through");
+          box.textContent = "";
+          if (i < penaltyCount) {
+            box.classList.add("bg-gray-300");
+            box.textContent = "X";
+          }
+        }
+      }
+    }
+
+    // Row-locking logic
+    if (gameState.lockedRows) {
+      ["red", "yellow", "green", "blue"].forEach((color) => {
+        const row = document.getElementById(`${color}-row`);
+        if (!row) return;
+        const lockCell = row.querySelector(".w-12.h-10");
+        if (!lockCell) return;
+
+        const lockedBy = gameState.lockedRows[color]; // null or playerName
+        if (lockedBy === null) {
+          lockCell.textContent = "LOCK";
+          lockCell.classList.remove("bg-gray-400", "text-white");
+          lockCell.classList.remove("bg-white", "text-black");
+          lockCell.classList.add("bg-white", "text-black");
+        } else if (lockedBy === currentPlayerName) {
+          lockCell.textContent = "🔒";
+          lockCell.classList.remove("bg-white", "text-black");
+          lockCell.classList.add("bg-gray-400", "text-white");
+        } else {
+          lockCell.textContent = "🔒";
+          lockCell.classList.remove("bg-gray-400", "text-white");
+          lockCell.classList.remove("bg-white", "text-black");
+          lockCell.classList.add("bg-white", "text-black");
+        }
+      });
+    }
+
+    // Check for game over
+    if (gameState.gameOver) {
+      console.log("Game is over, executing game over logic");
+      // Hide main game screen
+      if (gameScreen) {
+        gameScreen.classList.add("hidden");
+      }
+      // Show game over screen
+      if (gameOverScreen) {
+        gameOverScreen.classList.remove("hidden");
+        console.log("remove hidden class");
+      }
+      // Display scoreboard in #scoreboard
+      if (gameState.scoreboard) {
+        console.log("Displaying scoreboard:", gameState.scoreboard);
+        displayScoreboard(gameState.scoreboard);
+      }
+    } else {
+      console.log("Game is not over");
+      // Not game over => hide #game-over-screen if present
+      if (gameOverScreen) {
+        gameOverScreen.classList.add("hidden");
+      }
+    }
+  } catch (error) {
+    console.error("Error in updateGameUI:", error);
   }
 }
