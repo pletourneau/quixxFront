@@ -192,7 +192,7 @@ function generateScoreRows() {
 
     rowContainer.innerHTML = "";
     const { start, end, lock, bg } = rowsConfig[color];
-    rowContainer.className = `inline-flex items-center space-x-1 ${bg} rounded-lg py-2 mb-2 max-w-min`;
+    rowContainer.className = `inline-flex items-center space-x-1 ${bg} rounded-lg px-4 py-2 mb-2 max-w-min`;
 
     // Ascending if start < end, else descending
     const step = start < end ? 1 : -1;
