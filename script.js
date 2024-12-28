@@ -202,6 +202,8 @@ function endTurn() {
   const endTurnButton = document.querySelector("button[onclick='endTurn()']");
   if (endTurnButton) {
     endTurnButton.disabled = true;
+    // Make the button slightly dimmer
+    endTurnButton.classList.add("opacity-50");
   }
 }
 
@@ -398,11 +400,16 @@ function updateGameUI(newState) {
   // Roll Dice button
   const rollDiceButton = document.querySelector("#roll-dice-btn");
   if (rollDiceButton) {
-    // If game not started or over, disable
     if (!gameState.started || gameState.gameOver) {
       rollDiceButton.disabled = true;
+      rollDiceButton.classList.add("opacity-50");
     } else {
       rollDiceButton.disabled = !isActivePlayer;
+      if (rollDiceButton.disabled) {
+        rollDiceButton.classList.add("opacity-50");
+      } else {
+        rollDiceButton.classList.remove("opacity-50");
+      }
     }
   }
 
@@ -411,11 +418,17 @@ function updateGameUI(newState) {
   if (endTurnButton) {
     if (!gameState.started || gameState.gameOver) {
       endTurnButton.disabled = true;
+      endTurnButton.classList.add("opacity-50");
     } else {
       const alreadyEnded =
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(currentPlayerName);
       endTurnButton.disabled = alreadyEnded;
+      if (alreadyEnded) {
+        endTurnButton.classList.add("opacity-50");
+      } else {
+        endTurnButton.classList.remove("opacity-50");
+      }
     }
   }
 
@@ -426,11 +439,17 @@ function updateGameUI(newState) {
   if (resetTurnButton) {
     if (!gameState.started || gameState.gameOver) {
       resetTurnButton.disabled = true;
+      resetTurnButton.classList.add("opacity-50");
     } else {
       const alreadyEnded =
         gameState.turnEndedBy &&
         gameState.turnEndedBy.includes(currentPlayerName);
       resetTurnButton.disabled = alreadyEnded || !gameState.diceRolledThisTurn;
+      if (resetTurnButton.disabled) {
+        resetTurnButton.classList.add("opacity-50");
+      } else {
+        resetTurnButton.classList.remove("opacity-50");
+      }
     }
   }
 
@@ -444,10 +463,12 @@ function updateGameUI(newState) {
     if (penaltiesContainer) {
       for (let i = 0; i < 4; i++) {
         const box = penaltiesContainer.children[i];
+        // Remove gray & line-through first
         box.classList.remove("bg-gray-300", "line-through");
         box.textContent = "";
         if (i < penaltyCount) {
-          box.classList.add("bg-gray-300", "line-through");
+          // Mark penalty with gray background, no strikethrough
+          box.classList.add("bg-gray-300");
           box.textContent = "X";
         }
       }
@@ -463,9 +484,12 @@ function updateGameUI(newState) {
       if (!lockCell) return;
       if (gameState.lockedRows[color]) {
         lockCell.textContent = "🔒";
+        // Turn lock cell gray with white text
         lockCell.classList.remove("text-black", "bg-white");
+        lockCell.classList.add("bg-gray-400", "text-white");
       } else {
         lockCell.textContent = "LOCK";
+        lockCell.classList.remove("bg-gray-400", "text-white");
         lockCell.classList.add("text-black", "bg-white");
       }
     });
@@ -498,9 +522,10 @@ ws.onmessage = (event) => {
     const endTurnButton = document.querySelector("button[onclick='endTurn()']");
     if (endTurnButton) {
       endTurnButton.disabled = false;
+      endTurnButton.classList.remove("opacity-50");
     }
   } else if (data.type === "roomStatus") {
-    // FIX: use backticks for string interpolation
+    // Fix string interpolation
     alert(`You have ${data.status} the room: ${data.room}`);
     currentRoom = data.room;
   } else if (data.type === "newGame") {
