@@ -17,7 +17,7 @@
         margin: 0;
       }
 
-      /* This is your container for printing random "QUIXX" backgrounds */
+      /* The container for random "QUIXX" text background */
       #quixx-random-bg {
         position: fixed;
         top: 0;
@@ -25,11 +25,17 @@
         width: 100vw;
         height: 100vh;
         z-index: -1; /* behind all other elements */
-        pointer-events: none; /* let clicks pass through */
+        pointer-events: none; /* allow clicks to pass through */
         overflow: hidden;
 
-        /* Example: a gradient from #ffb37a to #ff600b */
+        /* Gradient or whatever background you prefer */
         background: linear-gradient(to bottom, #ffb37a, #ff600b);
+      }
+
+      /* Optionally, a function in script.js could show/hide #game-over-screen */
+      /* #game-over-screen is hidden by default. We'll show it once the game ends. */
+      #game-over-screen.hidden {
+        display: none;
       }
     </style>
   </head>
@@ -92,7 +98,6 @@
       class="w-full max-w-4xl bg-white rounded shadow p-4 space-y-6 hidden"
     >
       <div class="flex justify-center gap-4 mt-4" id="dice-container">
-        <!-- DICE elements -->
         <div
           class="w-12 h-12 flex items-center justify-center text-2xl font-bold border border-gray-300 rounded bg-white text-black"
           id="white1"
@@ -131,7 +136,7 @@
         </div>
       </div>
 
-      <!-- Buttons for rolling, ending turn, resetting turn -->
+      <!-- Buttons -->
       <div class="flex space-x-4 justify-center">
         <button
           onclick="rollDice()"
@@ -154,7 +159,6 @@
         </button>
       </div>
 
-      <!-- Turn Order Display -->
       <div class="flex items-center justify-center space-x-4">
         <h3 class="text-xl font-semibold">Turn Order</h3>
         <div id="current-turn-row" class="flex items-center space-x-2"></div>
@@ -181,7 +185,6 @@
       <div class="mt-4 text-center">
         <h3 class="font-bold text-lg mb-2">Scoring Reference</h3>
         <div class="flex justify-center flex-wrap gap-2">
-          <!-- Each small reference cell -->
           <div
             class="flex flex-col items-center text-sm border border-black px-2 py-1"
           >
@@ -246,25 +249,26 @@
       </div>
     </div>
 
-    <!-- GAME OVER SCREEN (hidden by default) -->
+    <!-- GAME OVER SCREEN (initially hidden) -->
     <div
       id="game-over-screen"
-      class="hidden bg-white rounded-xl shadow-2xl p-6 w-full max-w-md space-y-4"
+      class="hidden fixed inset-0 flex items-center justify-center"
     >
-      <h2 class="text-3xl font-bold text-red-600 mb-4">Game Over!</h2>
-
-      <!-- We'll place the scoreboard inside here -->
-      <div id="game-over-scoreboard" class="text-center"></div>
-
-      <button
-        onclick="location.reload()"
-        class="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition font-semibold shadow"
+      <div
+        class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md text-center"
       >
-        Return to Join Screen
-      </button>
+        <h1 class="text-3xl font-bold text-red-600 mb-4">Game Over!</h1>
+        <div id="scoreboard" class="mb-4"></div>
+        <button
+          onclick="returnToJoinScreen()"
+          class="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition font-semibold shadow"
+        >
+          Return to Join Screen
+        </button>
+      </div>
     </div>
 
-    <!-- Script linking to our script.js with all logic -->
+    <!-- Script linking to script.js with all logic -->
     <script src="script.js"></script>
   </body>
 </html>
