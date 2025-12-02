@@ -337,7 +337,12 @@
         </button>
       </div>
     </div>
-
+    <script>
+      // Initialize localStorage for room tracking if not exists
+      if (!localStorage.getItem("previousQuixxRooms")) {
+        localStorage.setItem("previousQuixxRooms", "[]");
+      }
+    </script>
     <!-- Script linking to script.js with all logic -->
     <script src="script.js"></script>
   </body>

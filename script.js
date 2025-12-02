@@ -19,7 +19,27 @@ function joinRoom(passcode, playerName) {
 function joinGame() {
   const passcode = document.getElementById("passcode").value;
   const playerName = document.getElementById("player-name").value;
+
   if (passcode && playerName) {
+    // Check if this room was recently used
+    const previousRooms = JSON.parse(
+      localStorage.getItem("previousQuixxRooms") || "[]"
+    );
+
+    if (previousRooms.includes(passcode)) {
+      if (
+        !confirm(
+          `Room "${passcode}" was recently used in a completed game. Start a fresh game with this code?`
+        )
+      ) {
+        return; // User cancelled
+      }
+      // Remove from previous rooms if user chooses to reuse
+      const index = previousRooms.indexOf(passcode);
+      previousRooms.splice(index, 1);
+      localStorage.setItem("previousQuixxRooms", JSON.stringify(previousRooms));
+    }
+
     joinRoom(passcode, playerName);
   } else {
     alert("Enter both a passcode and your name to join the game.");
@@ -97,9 +117,6 @@ function fillQuixxBackground() {
 
 /**
  * Called when the "Return to Join Screen" button is clicked on the Game Over screen
- * - Hide #game-over-screen
- * - Hide #game-screen
- * - Show #join-game-screen
  */
 function returnToJoinScreen() {
   const joinScreen = document.getElementById("join-game-screen");
@@ -110,26 +127,55 @@ function returnToJoinScreen() {
   if (gameScreen) gameScreen.classList.add("hidden");
   if (gameOverScreen) gameOverScreen.classList.add("hidden");
 
-  // Optionally reset any variables or perform cleanup
+  // Close WebSocket if open
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.close(1000, "Returning to join screen");
+  }
+
+  // Reset game state
   gameState = null;
   isRoomCreator = false;
   currentRoom = "";
 
-  // Reset input fields
+  // Clear input fields
   document.getElementById("player-name").value = "";
   document.getElementById("passcode").value = "";
+
+  // Clear scoreboard
+  const scoreboardDiv = document.getElementById("scoreboard");
+  if (scoreboardDiv) scoreboardDiv.innerHTML = "";
 }
 
-// ==================== WEBSOCKET ONOPEN: Initialize UI ====================
+// ==================== WEBSOCKET EVENT HANDLERS ====================
+
+// WebSocket onopen
 ws.onopen = () => {
   console.log("WebSocket connected. Generating rows/penalties...");
-
   generateScoreRows();
   generatePenaltyBoxes();
   fillQuixxBackground();
 };
 
-// ==================== WEBSOCKET ONMESSAGE: State Updates ====================
+// WebSocket onerror
+ws.onerror = (error) => {
+  console.error("WebSocket error:", error);
+  alert("Connection error. Please refresh the page.");
+};
+
+// WebSocket onclose
+ws.onclose = (event) => {
+  console.log("WebSocket closed:", event.code, event.reason);
+
+  // If it wasn't a normal closure, show message
+  if (event.code !== 1000) {
+    setTimeout(() => {
+      alert("Disconnected from server. Returning to join screen.");
+      resetGameToJoinScreen();
+    }, 1000);
+  }
+};
+
+// WebSocket onmessage
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
   console.log("onmessage received:", data);
@@ -153,8 +199,136 @@ ws.onmessage = (event) => {
     currentRoom = data.room;
     document.getElementById("start-game").style.display = "block";
     document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
+  } else if (data.type === "gameEnded") {
+    console.log("Game ended with scoreboard:", data.scoreboard);
+    handleGameEnded(data);
+  } else if (data.type === "roomClosing") {
+    console.log("Room closing message received:", data.message);
+    handleRoomClosing(data);
   }
 };
+
+// ==================== GAME END HANDLERS ====================
+
+/**
+ * Handle game ended message from server
+ */
+function handleGameEnded(data) {
+  // Show final scoreboard
+  displayScoreboard(data.scoreboard);
+
+  // Show game over screen
+  const gameOverScreen = document.getElementById("game-over-screen");
+  const gameScreen = document.getElementById("game-screen");
+  const joinScreen = document.getElementById("join-game-screen");
+
+  if (gameScreen) gameScreen.classList.add("hidden");
+  if (joinScreen) joinScreen.classList.add("hidden");
+  if (gameOverScreen) gameOverScreen.classList.remove("hidden");
+
+  // Store the room as "previously used" to prevent immediate reuse
+  const previousRooms = JSON.parse(
+    localStorage.getItem("previousQuixxRooms") || "[]"
+  );
+  if (currentRoom && !previousRooms.includes(currentRoom)) {
+    previousRooms.push(currentRoom);
+    localStorage.setItem("previousQuixxRooms", JSON.stringify(previousRooms));
+  }
+
+  // Disable further game actions
+  gameState = { ...gameState, gameOver: true };
+
+  // Close WebSocket after a delay to ensure scoreboard is shown
+  setTimeout(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close(1000, "Game ended");
+    }
+  }, 30000); // 30 seconds delay before closing
+}
+
+/**
+ * Handle room closing message from server
+ */
+function handleRoomClosing(data) {
+  // Show message to user
+  alert(data.message || "Room is closing. Game has ended.");
+
+  // Reset everything
+  resetGameToJoinScreen();
+
+  // Close WebSocket
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.close(1000, "Room closed");
+  }
+}
+
+/**
+ * Reset game and return to join screen
+ */
+function resetGameToJoinScreen() {
+  const joinScreen = document.getElementById("join-game-screen");
+  const gameScreen = document.getElementById("game-screen");
+  const gameOverScreen = document.getElementById("game-over-screen");
+
+  // Show join screen
+  if (joinScreen) joinScreen.classList.remove("hidden");
+
+  // Hide other screens
+  if (gameScreen) gameScreen.classList.add("hidden");
+  if (gameOverScreen) gameOverScreen.classList.add("hidden");
+
+  // Reset game state
+  gameState = null;
+  isRoomCreator = false;
+
+  // Clear previous room from localStorage if it's the current one
+  const previousRooms = JSON.parse(
+    localStorage.getItem("previousQuixxRooms") || "[]"
+  );
+  const currentPasscode = document.getElementById("passcode").value;
+  if (previousRooms.includes(currentPasscode)) {
+    document.getElementById("passcode").value = "";
+    alert("This room has ended. Please use a new room code.");
+  }
+
+  // Clear scoreboard
+  const scoreboardDiv = document.getElementById("scoreboard");
+  if (scoreboardDiv) scoreboardDiv.innerHTML = "";
+
+  // Reset dice display
+  const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
+  diceIds.forEach((dice) => {
+    const diceElement = document.getElementById(dice);
+    if (diceElement) diceElement.textContent = "🎲";
+  });
+
+  // Clear penalties
+  const penaltiesContainer = document.getElementById("penalties-container");
+  if (penaltiesContainer) {
+    for (let i = 0; i < 4; i++) {
+      const box = penaltiesContainer.children[i];
+      if (box) {
+        box.classList.remove("bg-gray-300", "line-through");
+        box.textContent = "";
+      }
+    }
+  }
+
+  // Clear player info
+  const playerInfo = document.getElementById("player-info");
+  if (playerInfo) {
+    const header = playerInfo.querySelector("h3");
+    playerInfo.innerHTML = header ? header.outerHTML : "";
+  }
+
+  // Hide start button
+  const startButton = document.getElementById("start-game");
+  if (startButton) startButton.style.display = "none";
+
+  // Clear room name display
+  const roomName = document.getElementById("room-name");
+  if (roomName) roomName.textContent = "";
+}
 
 /**
  * Generate the 4 color rows
@@ -349,6 +523,9 @@ function shuffle(array) {
 function displayScoreboard(scoreboard) {
   const scoreboardDiv = document.getElementById("scoreboard");
   if (!scoreboardDiv) return;
+
+  // Store scoreboard in localStorage for potential review
+  localStorage.setItem("lastQuixxScoreboard", JSON.stringify(scoreboard));
 
   scoreboardDiv.innerHTML =
     "<h3 class='text-xl font-bold mb-2'>Final Scores:</h3>";
