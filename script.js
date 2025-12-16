@@ -1,14 +1,126 @@
 // ==================== WEBSOCKET & GAME STATE LOGIC ====================
-const ws = new WebSocket("wss://quixxback.onrender.com");
+let ws = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY = 2000;
 
 let gameState = null;
 let isRoomCreator = false;
 let currentRoom = "";
 
+// Initialize WebSocket connection
+function connectWebSocket() {
+  if (
+    ws &&
+    (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)
+  ) {
+    console.log("WebSocket already connected or connecting");
+    return;
+  }
+
+  console.log("Connecting to WebSocket...");
+  ws = new WebSocket("wss://quixxback.onrender.com");
+
+  ws.onopen = () => {
+    console.log("WebSocket connected");
+    reconnectAttempts = 0;
+    generateScoreRows();
+    generatePenaltyBoxes();
+    fillQuixxBackground();
+  };
+
+  ws.onerror = (error) => {
+    console.error("WebSocket error:", error);
+  };
+
+  ws.onclose = (event) => {
+    console.log("WebSocket closed:", event.code, event.reason);
+
+    // Only attempt reconnection if not a normal closure and we have a room
+    if (
+      event.code !== 1000 &&
+      currentRoom &&
+      reconnectAttempts < MAX_RECONNECT_ATTEMPTS
+    ) {
+      reconnectAttempts++;
+      console.log(
+        `Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`
+      );
+
+      setTimeout(() => {
+        connectWebSocket();
+        // If we were in a game, try to rejoin
+        if (currentRoom && document.getElementById("player-name").value) {
+          setTimeout(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              joinRoom(
+                currentRoom,
+                document.getElementById("player-name").value
+              );
+            }
+          }, 500);
+        }
+      }, RECONNECT_DELAY * reconnectAttempts);
+    } else if (event.code !== 1000) {
+      setTimeout(() => {
+        alert("Disconnected from server. Please refresh the page.");
+        resetGameToJoinScreen();
+      }, 1000);
+    }
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log("onmessage received:", data);
+
+      if (data.type === "gameState") {
+        updateGameUI(data);
+      } else if (data.type === "error") {
+        alert(data.message);
+        const endTurnButton = document.querySelector(
+          "button[onclick='endTurn()']"
+        );
+        if (endTurnButton) {
+          endTurnButton.disabled = false;
+          endTurnButton.classList.remove("opacity-50");
+        }
+      } else if (data.type === "roomStatus") {
+        alert(`You have ${data.status} the room: ${data.room}`);
+        currentRoom = data.room;
+      } else if (data.type === "newGame") {
+        console.log("Received newGame. You are the room creator.");
+        isRoomCreator = true;
+        currentRoom = data.room;
+        document.getElementById("start-game").style.display = "block";
+        document.getElementById(
+          "room-name"
+        ).textContent = `Room: ${currentRoom}`;
+      } else if (data.type === "gameEnded") {
+        console.log("Game ended with scoreboard:", data.scoreboard);
+        handleGameEnded(data);
+      } else if (data.type === "roomClosing") {
+        console.log("Room closing message received:", data.message);
+        handleRoomClosing(data);
+      }
+    } catch (error) {
+      console.error("Error parsing message:", error);
+    }
+  };
+}
+
+// Initialize connection on page load
+connectWebSocket();
+
 /**
  * Send a "joinRoom" action to the server
  */
 function joinRoom(passcode, playerName) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    alert("Not connected to server. Please wait and try again.");
+    return;
+  }
+
   console.log("Sending joinRoom:", passcode, playerName);
   ws.send(JSON.stringify({ type: "joinRoom", passcode, playerName }));
 }
@@ -17,33 +129,33 @@ function joinRoom(passcode, playerName) {
  * Called by "Join Game" button
  */
 function joinGame() {
-  const passcode = document.getElementById("passcode").value;
-  const playerName = document.getElementById("player-name").value;
+  const passcode = document.getElementById("passcode").value.trim();
+  const playerName = document.getElementById("player-name").value.trim();
 
-  if (passcode && playerName) {
-    // Check if this room was recently used
-    const previousRooms = JSON.parse(
-      localStorage.getItem("previousQuixxRooms") || "[]"
-    );
-
-    if (previousRooms.includes(passcode)) {
-      if (
-        !confirm(
-          `Room "${passcode}" was recently used in a completed game. Start a fresh game with this code?`
-        )
-      ) {
-        return; // User cancelled
-      }
-      // Remove from previous rooms if user chooses to reuse
-      const index = previousRooms.indexOf(passcode);
-      previousRooms.splice(index, 1);
-      localStorage.setItem("previousQuixxRooms", JSON.stringify(previousRooms));
-    }
-
-    joinRoom(passcode, playerName);
-  } else {
+  if (!passcode || !playerName) {
     alert("Enter both a passcode and your name to join the game.");
+    return;
   }
+
+  // Check if this room was recently used
+  const previousRooms = JSON.parse(
+    localStorage.getItem("previousQuixxRooms") || "[]"
+  );
+
+  if (previousRooms.includes(passcode)) {
+    if (
+      !confirm(
+        `Room "${passcode}" was recently used in a completed game. Start a fresh game with this code?`
+      )
+    ) {
+      return;
+    }
+    const index = previousRooms.indexOf(passcode);
+    previousRooms.splice(index, 1);
+    localStorage.setItem("previousQuixxRooms", JSON.stringify(previousRooms));
+  }
+
+  joinRoom(passcode, playerName);
 }
 
 /**
@@ -67,12 +179,14 @@ function startGame() {
  * Helper to send an action over WebSocket
  */
 function sendAction(type, payload = {}) {
-  if (ws.readyState === WebSocket.OPEN) {
-    console.log("Sending action:", type, payload);
-    ws.send(JSON.stringify({ type, ...payload }));
-  } else {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
     console.warn("WebSocket not open. Cannot send action:", type);
+    alert("Connection lost. Please refresh the page.");
+    return;
   }
+
+  console.log("Sending action:", type, payload);
+  ws.send(JSON.stringify({ type, ...payload }));
 }
 
 /**
@@ -85,7 +199,7 @@ const QUIXX_FONTS = [
   "'Courier New', monospace",
 ];
 const QUIXX_COLORS = ["red", "blue", "green", "yellow"];
-const QUIXX_COUNT = 400; // Increase to flood more QUIXX lines
+const QUIXX_COUNT = 400;
 
 function fillQuixxBackground() {
   const container = document.getElementById("quixx-random-bg");
@@ -116,7 +230,7 @@ function fillQuixxBackground() {
 }
 
 /**
- * Called when the "Return to Join Screen" button is clicked on the Game Over screen
+ * Called when the "Return to Join Screen" button is clicked
  */
 function returnToJoinScreen() {
   const joinScreen = document.getElementById("join-game-screen");
@@ -128,7 +242,7 @@ function returnToJoinScreen() {
   if (gameOverScreen) gameOverScreen.classList.add("hidden");
 
   // Close WebSocket if open
-  if (ws.readyState === WebSocket.OPEN) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
     ws.close(1000, "Returning to join screen");
   }
 
@@ -136,6 +250,7 @@ function returnToJoinScreen() {
   gameState = null;
   isRoomCreator = false;
   currentRoom = "";
+  reconnectAttempts = 0;
 
   // Clear input fields
   document.getElementById("player-name").value = "";
@@ -144,69 +259,10 @@ function returnToJoinScreen() {
   // Clear scoreboard
   const scoreboardDiv = document.getElementById("scoreboard");
   if (scoreboardDiv) scoreboardDiv.innerHTML = "";
+
+  // Reconnect WebSocket for next game
+  setTimeout(() => connectWebSocket(), 500);
 }
-
-// ==================== WEBSOCKET EVENT HANDLERS ====================
-
-// WebSocket onopen
-ws.onopen = () => {
-  console.log("WebSocket connected. Generating rows/penalties...");
-  generateScoreRows();
-  generatePenaltyBoxes();
-  fillQuixxBackground();
-};
-
-// WebSocket onerror
-ws.onerror = (error) => {
-  console.error("WebSocket error:", error);
-  alert("Connection error. Please refresh the page.");
-};
-
-// WebSocket onclose
-ws.onclose = (event) => {
-  console.log("WebSocket closed:", event.code, event.reason);
-
-  // If it wasn't a normal closure, show message
-  if (event.code !== 1000) {
-    setTimeout(() => {
-      alert("Disconnected from server. Returning to join screen.");
-      resetGameToJoinScreen();
-    }, 1000);
-  }
-};
-
-// WebSocket onmessage
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log("onmessage received:", data);
-
-  if (data.type === "gameState") {
-    updateGameUI(data);
-  } else if (data.type === "error") {
-    alert(data.message);
-    // Re-enable End Turn button if disabled
-    const endTurnButton = document.querySelector("button[onclick='endTurn()']");
-    if (endTurnButton) {
-      endTurnButton.disabled = false;
-      endTurnButton.classList.remove("opacity-50");
-    }
-  } else if (data.type === "roomStatus") {
-    alert(`You have ${data.status} the room: ${data.room}`);
-    currentRoom = data.room;
-  } else if (data.type === "newGame") {
-    console.log("Received newGame. You are the room creator.");
-    isRoomCreator = true;
-    currentRoom = data.room;
-    document.getElementById("start-game").style.display = "block";
-    document.getElementById("room-name").textContent = `Room: ${currentRoom}`;
-  } else if (data.type === "gameEnded") {
-    console.log("Game ended with scoreboard:", data.scoreboard);
-    handleGameEnded(data);
-  } else if (data.type === "roomClosing") {
-    console.log("Room closing message received:", data.message);
-    handleRoomClosing(data);
-  }
-};
 
 // ==================== GAME END HANDLERS ====================
 
@@ -214,10 +270,8 @@ ws.onmessage = (event) => {
  * Handle game ended message from server
  */
 function handleGameEnded(data) {
-  // Show final scoreboard
   displayScoreboard(data.scoreboard);
 
-  // Show game over screen
   const gameOverScreen = document.getElementById("game-over-screen");
   const gameScreen = document.getElementById("game-screen");
   const joinScreen = document.getElementById("join-game-screen");
@@ -226,7 +280,7 @@ function handleGameEnded(data) {
   if (joinScreen) joinScreen.classList.add("hidden");
   if (gameOverScreen) gameOverScreen.classList.remove("hidden");
 
-  // Store the room as "previously used" to prevent immediate reuse
+  // Store the room as "previously used"
   const previousRooms = JSON.parse(
     localStorage.getItem("previousQuixxRooms") || "[]"
   );
@@ -235,31 +289,15 @@ function handleGameEnded(data) {
     localStorage.setItem("previousQuixxRooms", JSON.stringify(previousRooms));
   }
 
-  // Disable further game actions
   gameState = { ...gameState, gameOver: true };
-
-  // Close WebSocket after a delay to ensure scoreboard is shown
-  setTimeout(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.close(1000, "Game ended");
-    }
-  }, 30000); // 30 seconds delay before closing
 }
 
 /**
  * Handle room closing message from server
  */
 function handleRoomClosing(data) {
-  // Show message to user
   alert(data.message || "Room is closing. Game has ended.");
-
-  // Reset everything
   resetGameToJoinScreen();
-
-  // Close WebSocket
-  if (ws.readyState === WebSocket.OPEN) {
-    ws.close(1000, "Room closed");
-  }
 }
 
 /**
@@ -270,18 +308,13 @@ function resetGameToJoinScreen() {
   const gameScreen = document.getElementById("game-screen");
   const gameOverScreen = document.getElementById("game-over-screen");
 
-  // Show join screen
   if (joinScreen) joinScreen.classList.remove("hidden");
-
-  // Hide other screens
   if (gameScreen) gameScreen.classList.add("hidden");
   if (gameOverScreen) gameOverScreen.classList.add("hidden");
 
-  // Reset game state
   gameState = null;
   isRoomCreator = false;
 
-  // Clear previous room from localStorage if it's the current one
   const previousRooms = JSON.parse(
     localStorage.getItem("previousQuixxRooms") || "[]"
   );
@@ -291,18 +324,15 @@ function resetGameToJoinScreen() {
     alert("This room has ended. Please use a new room code.");
   }
 
-  // Clear scoreboard
   const scoreboardDiv = document.getElementById("scoreboard");
   if (scoreboardDiv) scoreboardDiv.innerHTML = "";
 
-  // Reset dice display
   const diceIds = ["white1", "white2", "red", "yellow", "green", "blue"];
   diceIds.forEach((dice) => {
     const diceElement = document.getElementById(dice);
     if (diceElement) diceElement.textContent = "🎲";
   });
 
-  // Clear penalties
   const penaltiesContainer = document.getElementById("penalties-container");
   if (penaltiesContainer) {
     for (let i = 0; i < 4; i++) {
@@ -314,20 +344,20 @@ function resetGameToJoinScreen() {
     }
   }
 
-  // Clear player info
   const playerInfo = document.getElementById("player-info");
   if (playerInfo) {
     const header = playerInfo.querySelector("h3");
     playerInfo.innerHTML = header ? header.outerHTML : "";
   }
 
-  // Hide start button
   const startButton = document.getElementById("start-game");
   if (startButton) startButton.style.display = "none";
 
-  // Clear room name display
   const roomName = document.getElementById("room-name");
   if (roomName) roomName.textContent = "";
+
+  currentRoom = "";
+  reconnectAttempts = 0;
 }
 
 /**
@@ -371,7 +401,6 @@ function generateScoreRows() {
 
     rowContainer.innerHTML = "";
     const { start, end, lock, bg } = rowsConfig[color];
-    // Use inline-flex with some padding to size to content
     rowContainer.className = `
       inline-flex
       items-center
@@ -392,7 +421,6 @@ function generateScoreRows() {
     const lastNumber = numbers[numbers.length - 1];
     const normalNumbers = numbers.slice(0, -1);
 
-    // Normal cells
     normalNumbers.forEach((num) => {
       const cell = document.createElement("div");
       cell.textContent = num;
@@ -403,7 +431,6 @@ function generateScoreRows() {
       rowContainer.appendChild(cell);
     });
 
-    // Final number + lock
     const finalSection = document.createElement("div");
     finalSection.className = "relative inline-flex items-center";
 
@@ -518,13 +545,11 @@ function shuffle(array) {
 
 /**
  * Display final scoreboard
- * Now used only for #scoreboard in the game-over screen
  */
 function displayScoreboard(scoreboard) {
   const scoreboardDiv = document.getElementById("scoreboard");
   if (!scoreboardDiv) return;
 
-  // Store scoreboard in localStorage for potential review
   localStorage.setItem("lastQuixxScoreboard", JSON.stringify(scoreboard));
 
   scoreboardDiv.innerHTML =
@@ -581,10 +606,7 @@ function checkOrientation() {
   }
 }
 
-// Initial check
 checkOrientation();
-
-// Add event listener to detect orientation changes
 window.addEventListener("resize", checkOrientation);
 
 /**
@@ -624,45 +646,31 @@ function updateGameUI(newState) {
     const gameScreen = document.getElementById("game-screen");
     const gameOverScreen = document.getElementById("game-over-screen");
 
-    console.log("Game Over state:", gameState.gameOver);
-
-    // If the game has started, hide joinGameScreen
     if (gameState.started && joinGameScreen) {
-      console.log("Hiding join game screen");
       joinGameScreen.classList.add("hidden");
     }
 
-    // If not gameOver, we show the game screen
     if (gameScreen && gameState.started && !gameState.gameOver) {
-      console.log("Showing game screen");
       gameScreen.classList.remove("hidden");
     }
 
-    // If the game is not over, hide #game-over-screen
     if (gameOverScreen && !gameState.gameOver) {
-      console.log("Hiding game over screen");
       gameOverScreen.classList.add("hidden");
     }
 
     const currentPlayerName = document.getElementById("player-name").value;
-    console.log("Current Player Name:", currentPlayerName);
 
-    // Identify active player
     let activePlayerName = null;
     if (gameState.turnOrder && gameState.turnOrder.length > 0) {
       activePlayerName = gameState.turnOrder[gameState.activePlayerIndex];
     }
-    console.log("Active Player:", activePlayerName);
 
     const isActivePlayer = activePlayerName === currentPlayerName;
-    console.log("Is Active Player:", isActivePlayer);
 
-    // Update turn order display
     if (gameState.turnOrder) {
       updateCurrentTurnRow(activePlayerName, gameState.turnOrder);
     }
 
-    // Show dice or placeholders
     if (gameState.diceValues) {
       Object.entries(gameState.diceValues).forEach(([dice, value]) => {
         const diceElement = document.getElementById(dice);
@@ -678,7 +686,6 @@ function updateGameUI(newState) {
       });
     }
 
-    // Update board for local player
     if (gameState.boards && gameState.boards[currentPlayerName]) {
       ["red", "yellow", "green", "blue"].forEach((color) => {
         const row = document.getElementById(`${color}-row`);
@@ -704,7 +711,6 @@ function updateGameUI(newState) {
       });
     }
 
-    // Update player list
     const playerInfo = document.getElementById("player-info");
     if (gameState.players && playerInfo) {
       playerInfo.innerHTML = `<h3 class="text-xl font-semibold mb-2">Players in the Room:</h3>`;
@@ -713,14 +719,12 @@ function updateGameUI(newState) {
         playerElement.classList.add("player");
         playerElement.textContent = player.name;
 
-        // Disconnected => red
         if (player.connected === false) {
           playerElement.style.color = "red";
         } else {
           playerElement.style.color = "black";
         }
 
-        // Ended turn => line-through
         if (
           gameState.turnEndedBy &&
           gameState.turnEndedBy.includes(player.name)
@@ -731,7 +735,6 @@ function updateGameUI(newState) {
       });
     }
 
-    // Update Roll Dice button
     const rollDiceButton = document.getElementById("roll-dice-btn");
     if (rollDiceButton) {
       if (!gameState.started || gameState.gameOver) {
@@ -747,7 +750,6 @@ function updateGameUI(newState) {
       }
     }
 
-    // Update End Turn button
     const endTurnButton = document.querySelector("button[onclick='endTurn()']");
     if (endTurnButton) {
       if (!gameState.started || gameState.gameOver) {
@@ -766,7 +768,6 @@ function updateGameUI(newState) {
       }
     }
 
-    // Update Reset Turn button
     const resetTurnButton = document.querySelector(
       "button[onclick='resetTurn()']"
     );
@@ -788,7 +789,6 @@ function updateGameUI(newState) {
       }
     }
 
-    // Update penalties for local player
     if (
       gameState.penalties &&
       gameState.penalties[currentPlayerName] !== undefined
@@ -808,7 +808,6 @@ function updateGameUI(newState) {
       }
     }
 
-    // Row-locking logic
     if (gameState.lockedRows) {
       ["red", "yellow", "green", "blue"].forEach((color) => {
         const row = document.getElementById(`${color}-row`);
@@ -816,7 +815,7 @@ function updateGameUI(newState) {
         const lockCell = row.querySelector(".w-12.h-10");
         if (!lockCell) return;
 
-        const lockedBy = gameState.lockedRows[color]; // null or playerName
+        const lockedBy = gameState.lockedRows[color];
         if (lockedBy === null) {
           lockCell.textContent = "LOCK";
           lockCell.classList.remove("bg-gray-400", "text-white");
@@ -835,26 +834,17 @@ function updateGameUI(newState) {
       });
     }
 
-    // Check for game over
     if (gameState.gameOver) {
-      console.log("Game is over, executing game over logic");
-      // Hide main game screen
       if (gameScreen) {
         gameScreen.classList.add("hidden");
       }
-      // Show game over screen
       if (gameOverScreen) {
         gameOverScreen.classList.remove("hidden");
-        console.log("remove hidden class");
       }
-      // Display scoreboard in #scoreboard
       if (gameState.scoreboard) {
-        console.log("Displaying scoreboard:", gameState.scoreboard);
         displayScoreboard(gameState.scoreboard);
       }
     } else {
-      console.log("Game is not over");
-      // Not game over => hide #game-over-screen if present
       if (gameOverScreen) {
         gameOverScreen.classList.add("hidden");
       }
